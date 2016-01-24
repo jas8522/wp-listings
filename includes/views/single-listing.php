@@ -193,10 +193,14 @@ function single_listing_post_content() {
 			</div><!-- #listing-gallery -->
 			<?php } ?>
 
-			<?php if (get_post_meta( $post->ID, '_listing_video', true) != '') { ?>
+			<?php if (get_post_meta( $post->ID, '_listing_video', true) != '') {
+				$video_url = get_post_meta( $post->ID, '_listing_video', true);
+			?>
 			<div id="listing-video">
 				<div class="iframe-wrap">
-				<?php echo wp_oembed_get( get_post_meta( $post->ID, '_listing_video', true) ); ?>
+				<?php if (wp_oembed_get( $video_url )){
+					echo wp_oembed_get( $video_url );
+				} else { echo "<a href='$video_url'>$video_url</a>"; } ?>
 				</div>
 			</div><!-- #listing-video -->
 			<?php } ?>
