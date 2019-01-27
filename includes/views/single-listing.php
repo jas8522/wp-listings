@@ -194,7 +194,7 @@ function single_listing_post_content() {
 			<?php } ?>
 
 			<?php if (get_post_meta( $post->ID, '_listing_video', true) != '') {
-				$video_url = get_post_meta( $post->ID, '_listing_video', true);
+				$video_url = esc_url( get_post_meta( $post->ID, '_listing_video', true), array('http', 'https') );
 			?>
 			<div id="listing-video">
 				<div class="iframe-wrap">
