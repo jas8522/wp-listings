@@ -131,7 +131,9 @@ class WP_Listings_Featured_Listings_Widget extends WP_Widget {
 				/** wrap in div with possible column class, and output **/
 				printf( '<div class="listing %s post-%s"><div class="listing-wrap">%s</div></div>', $column_class . $first_class, $post->ID, apply_filters( 'wp_listings_featured_listings_widget_loop', $loop ) );
 
-			endwhile; endif;
+			endwhile; 
+			else: print('<p class="nolistings">Sorry! There are no listings at this time. Check back again soon.</p>');
+			endif;
 			wp_reset_postdata();
 
 		echo $after_widget;
