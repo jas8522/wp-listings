@@ -12,34 +12,53 @@
  * @package WP Listings
  * @since 0.1.0
  */
-
 class Single_Listing_Template {
 
-	function __construct() {
+	protected $templates;
 
-		add_action( 'admin_menu', array( $this, 'wplistings_add_metabox' ) );
-		add_action( 'save_post', array( $this, 'metabox_save' ), 1, 2 );
+	public function __construct() {
+		add_action( 'admin_menu', [ $this, 'wplistings_add_metabox' ] );
+		add_action( 'save_post', [ $this, 'metabox_save' ], 1, 2 );
+		add_filter( 'template_include', [ $this, 'load_listing_template' ] );
 
+		$this->templates = [
+			'listing-templates/single-listing-classical.php' => 'Classical',
+			'listing-templates/single-listing-elegant.php' => 'Elegant',
+			'listing-templates/single-listing-luxurious.php' => 'Luxurious',
+			'listing-templates/single-listing-solid.php'   => 'Solid',
+			'listing-templates/single-listing-spacious.php' => 'Spacious',
+		];
+		// Only availabe for the First Impression theme.
+		if ( 'first-impression' === get_option( 'stylesheet' ) ) {
+			$this->templates['single-listing-first-impression.php'] = 'First Impression';
+		}
 	}
 
-	function get_listing_templates() {
+	public function load_listing_template( $template ) {
+		global $post;
+		$post_meta = get_post_meta( $post->ID );
 
-		$templates = wp_get_theme()->get_files( 'php', 1 );
-		$listing_templates = array();
-
-		$base = array( trailingslashit( get_template_directory() ), trailingslashit( get_stylesheet_directory() ) );
-
-		foreach ( (array) $templates as $file => $full_path ) {
-
-			if ( ! preg_match( '|Single Listing Template:(.*)$|mi', file_get_contents( $full_path ), $header ) )
-				continue;
-
-			$listing_templates[ $file ] = _cleanup_header_comment( $header[1] );
-
+		if ( 'listing' === $post->post_type && isset( $post_meta['_wp_post_template'][0] ) ) {
+			switch ( $post_meta['_wp_post_template'][0] ) {
+				case 'listing-templates/single-listing-classical.php':
+					return plugin_dir_path( __FILE__ ) . 'listing-templates/single-listing-classical.php';
+				case 'listing-templates/single-listing-elegant.php':
+					return plugin_dir_path( __FILE__ ) . 'listing-templates/single-listing-elegant.php';
+				case 'listing-templates/single-listing-luxurious.php':
+					return plugin_dir_path( __FILE__ ) . 'listing-templates/single-listing-luxurious.php';
+				case 'listing-templates/single-listing-solid.php':
+					return plugin_dir_path( __FILE__ ) . 'listing-templates/single-listing-solid.php';
+				case 'listing-templates/single-listing-spacious.php':
+					return plugin_dir_path( __FILE__ ) . 'listing-templates/single-listing-spacious.php';
+				case 'single-listing-first-impression.php':
+					return get_stylesheet_directory() . '/single-listing-first-impression.php';
+			}
 		}
+		return $template;
+	}
 
-		return $listing_templates;
-
+	public function get_listing_templates() {
+		return $this->templates;
 	}
 
 	function listing_templates_dropdown() {
@@ -58,7 +77,7 @@ class Single_Listing_Template {
 	}
 
 	function wplistings_add_metabox( $post ) {
-		add_meta_box( 'wplistings_listing_templates', __( 'Single Listing Template', 'wplistings' ), array( $this, 'listing_template_metabox' ), 'listing', 'side', 'high' );
+		add_meta_box( 'wplistings_listing_templates', __( 'Listing Template', 'wplistings' ), array( $this, 'listing_template_metabox' ), 'listing', 'side', 'high' );
 	}
 
 	function listing_template_metabox( $post ) {
@@ -70,8 +89,7 @@ class Single_Listing_Template {
 		<select name="_wp_post_template" id="listing_template" class="dropdown">
 			<option value=""><?php _e( 'Default', 'wp-listings' ); ?></option>
 			<?php $this->listing_templates_dropdown(); ?>
-		</select><br /><br />
-		<p><?php _e( 'You can use custom templates for single listings that might have additional features or custom layouts by adding them to your theme directory. If so, you will see them above.', 'wp-listings' ); ?></p>
+		</select><br />
 		<?php
 
 	}

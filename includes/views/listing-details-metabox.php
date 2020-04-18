@@ -4,6 +4,7 @@ wp_nonce_field( 'wp_listings_metabox_save', 'wp_listings_metabox_nonce' );
 global $post;
 
 $pattern = '<p><label>%s<br /><input type="text" name="wp_listings[%s]" value="%s" /></label></p>';
+$adv_pattern = '<p><label>%s:<br /><input type="text" name="wp_listings[_advanced_fields][%s]" value="%s" /></label></p>';
 
 echo '<div style="width: 45%; float: left">';
 
@@ -39,6 +40,30 @@ echo '<div style="width: 45%; float: right;">';
 	}
 
 echo '</div><br style="clear: both;" />';
+
+// Advanced fields area.
+
+$options = get_option('plugin_wp_listings_settings');
+if ( isset( $options['wp_listings_display_advanced_fields'] ) && $options['wp_listings_display_advanced_fields'] ) {
+	$adv_fields  = generate_adv_field_list( $post );
+	if ( count( $adv_fields ) ) {
+		_e( '<h4>Advanced Fields:</h4>', 'wp-listings' );
+
+		echo '<div style="width: 45%; float: left">';
+			foreach ( $adv_fields['col1'] as $key => $value ) {
+				printf( $adv_pattern, esc_html( get_adv_field_display_name( $key ) ), esc_attr( $key ), esc_attr( $value ) );
+			}
+		echo '</div>';
+
+		echo '<div style="width: 45%; float: right;">';
+			foreach ( $adv_fields['col2'] as $key => $value ) {
+				printf( $adv_pattern, esc_html( get_adv_field_display_name( $key ) ), esc_attr( $key ), esc_attr( $value ) );
+			}
+		echo '</div><br style="clear: both;" />';
+	}
+}
+
+// End advanced fields area.
 
 echo '<div style="width: 45%; float: left">';
 	_e('<h4>Price Options</h4>', 'wp-listings');
@@ -115,4 +140,4 @@ echo '<div style="width: 90%; float: left;">';
 	_e('<p><label>If you use a Contact Form plugin, you may enter the Contact Form shortcode here. Otherwise, the single listing template will use a default contact form:<br />', 'wp-listings');
 	printf( __( '<textarea name="wp_listings[_listing_contact_form]" rows="1" cols="18" style="%s">%s</textarea></label></p>', 'wp-listings' ), 'width: 99%;', htmlentities( get_post_meta( $post->ID, '_listing_contact_form', true) ) );
 
-echo '</div><br style="clear: both;" />';
+	echo '</div><br style="clear: both;" />';

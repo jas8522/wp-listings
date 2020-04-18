@@ -905,11 +905,11 @@ msgstr ""
 
 #: includes/views/wp-listings-settings.php:275
 msgid ""
-"<h3>Forms</h3><h4>Google Recaptcha (anti-spam)</h4><p>With the default "
-"contact form, you can choose to add Google Recaptcha to prevent spam, or "
+"<h3>Forms</h3><h4>Google reCAPTCHA v2 (anti-spam)</h4><p>With the default "
+"contact form, you can choose to add Google reCAPTCHA v2 to prevent spam, or "
 "use a form shortcode plugin with anti-spam protection. To use Google "
-"Recaptcha, you must first <a "
-"href=\"https://www.google.com/recaptcha/admin\">sign up for a key</a>, then "
+"reCAPTCHA v2, you must first <a "
+"href=\"https://www.google.com/recaptcha/admin\">sign up for a v2 key</a>, then "
 "enter the site and secret key below:</p>"
 msgstr ""
 

@@ -99,7 +99,7 @@ jQuery(document).ready(function($) {
 	// Select all
 	$("#selectall").change(function(){
 		$(".checkbox").prop('checked', $(this).prop("checked"));
-		$(this).closest('li').addClass('selected');
+		$('.idx-listing li').addClass('selected');
 	});
 
 	/* === End listing importer JS. === */

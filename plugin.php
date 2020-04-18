@@ -7,7 +7,7 @@
 	Author URI: http://agentevolution.com
 	Text Domain: wp-listings
 
-	Version: 2.3.2
+	Version: 2.5.0
 
 	License: GNU General Public License v2.0 (or later)
 	License URI: http://www.opensource.org/licenses/gpl-license.php
@@ -30,7 +30,7 @@ function wp_listings_activation() {
 	}
 	flush_rewrite_rules();
 
-	$notice_keys = array('wpl_notice_idx', 'wpl_listing_notice_idx', 'wpl_notice_equity');
+	$notice_keys = array('wpl_notice_idx', 'wpl_listing_notice_idx');
 	foreach ($notice_keys as $notice) {
 		delete_user_meta( get_current_user_id(), $notice );
 	}
@@ -46,7 +46,7 @@ function wp_listings_deactivation() {
 
 	flush_rewrite_rules();
 
-	$notice_keys = array('wpl_notice_idx', 'wpl_listing_notice_idx', 'wpl_notice_equity');
+	$notice_keys = array('wpl_notice_idx', 'wpl_listing_notice_idx');
 	foreach ($notice_keys as $notice) {
 		delete_user_meta( get_current_user_id(), $notice );
 	}
@@ -66,7 +66,7 @@ function wp_listings_init() {
 
 	define( 'WP_LISTINGS_URL', plugin_dir_url( __FILE__ ) );
 	define( 'WP_LISTINGS_DIR', plugin_dir_path( __FILE__ ) );
-	define( 'WP_LISTINGS_VERSION', '2.3.2' );
+	define( 'WP_LISTINGS_VERSION', '2.4.1' );
 
 	/** Load textdomain for translation */
 	load_plugin_textdomain( 'wp-listings', false, basename( dirname( __FILE__ ) ) . '/languages/' );
