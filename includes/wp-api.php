@@ -180,3 +180,25 @@ function allowed_meta_keys() {
 
 	return $allowed_meta_keys;
 }
+
+add_action(
+	'rest_api_init',
+	function () {
+		register_rest_route(
+			'wp-listings/v1',
+			'import-listings/',
+			array(
+				'methods'  => 'GET',
+				'callback' => 'wpl_rest_import_listings',
+			)
+		);
+	}
+);
+
+function wpl_rest_import_listings( $data ) {
+	return rest_ensure_response( WPL_Idx_Listing::wp_listings_idx_create_post( explode( ',', $data['listings'] ) ) );
+}
+
+function wpl_rest_permission_check() {
+	return current_user_can( 'edit_posts' );
+}

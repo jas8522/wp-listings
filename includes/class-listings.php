@@ -92,6 +92,7 @@ class WP_Listings {
 
 		add_action( 'save_post', array( $this, 'save_post' ), 1, 3 );
 		add_action( 'admin_notices', array( $this, 'admin_notices' ) );
+		add_action( 'admin_notices', array( $this, 'hide_empty_thumbnails' ), 10 );
 
 		add_action( 'admin_init', array( &$this, 'register_settings' ) );
 		add_action( 'admin_init', array( &$this, 'add_options' ) );
@@ -104,6 +105,7 @@ class WP_Listings {
 	 */
 	function register_settings() {
 		register_setting( 'wp_listings_options', 'plugin_wp_listings_settings' );
+		register_setting( 'wp_listings_options', 'wp_listings_advanced_field_display_options' );
 	}
 
 	/**
@@ -183,9 +185,6 @@ class WP_Listings {
 		if ( !class_exists( 'Idx_Broker_Plugin' ) ) {
 			add_meta_box( 'idx_metabox', __( 'IDX Broker', 'wp-listings' ), array( &$this, 'idx_metabox' ), 'wp-listings-options', 'side', 'core' );
 		}
-		if( !function_exists( 'equity' ) ) {
-			add_meta_box( 'agentevo_metabox', __( 'Equity Framework', 'wp-listings' ), array( &$this, 'agentevo_metabox' ), 'wp-listings-options', 'side', 'core' );
-		}
 
 	}
 
@@ -195,10 +194,6 @@ class WP_Listings {
 
 	function listing_features_metabox() {
 		include( dirname( __FILE__ ) . '/views/listing-features-metabox.php' );
-	}
-
-	function agentevo_metabox() {
-		include( dirname( __FILE__ ) . '/views/agentevo-metabox.php' );
 	}
 
 	function idx_metabox() {
@@ -323,13 +318,10 @@ class WP_Listings {
 	function admin_notices() {
 
 		$screen = get_current_screen();
-
+		
 		if ( isset( $_GET['wp-listings']) || $screen->id == 'edit-listing' ) {
 			if ( !class_exists( 'Idx_Broker_Plugin') ) {
 				echo wp_listings_admin_notice( __( '<strong>Integrate your MLS Listings into WordPress with IDX Broker!</strong> <a href="http://www.idxbroker.com/features/idx-wordpress-plugin">Find out how</a>', 'wp-listings' ), false, 'activate_plugins', (isset( $_GET['wp-listings'])) ? 'wpl_listing_notice_idx' : 'wpl_notice_idx' );
-			}
-			if( !function_exists( 'equity' ) ) {
-				echo wp_listings_admin_notice( __( '<strong>Stop filling out forms. Equity automatically enhances your listings with extended property details.</strong> <a href="http://www.agentevolution.com/equity/">Find out how</a>', 'wp-listings' ), false, 'activate_plugins', (isset( $_GET['wp-listings'])) ? 'wpl_listing_notice_equity' : 'wpl_notice_equity' );
 			}
 			if( get_option('wp_listings_import_progress') == true ) {
 				echo wp_listings_admin_notice( __( '<strong>Your listings are being imported in the background. This notice will dismiss when all selected listings have been imported.</strong>', 'wp-listings' ), false, 'activate_plugins', 'wpl_notice_import_progress' );
@@ -337,6 +329,10 @@ class WP_Listings {
 		}
 
 		return $screen;
+	}
+
+	function hide_empty_thumbnails() {
+		echo __( '<style>.listing_thumbnail>p>img[src=""]{content:url("//mlsphotos.idxbroker.com/defaultNoPhoto/noPhotoFull.png")}</style>' );
 	}
 
 }

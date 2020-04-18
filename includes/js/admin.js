@@ -228,4 +228,35 @@ jQuery(document).ready(function($) {
 
 	/* === End term image JS. === */
 
+
+	/*  */
+	jQuery(document).on( 'click', '.submit-imports-button', function(event){
+		event.preventDefault(); 
+		var all = jQuery('.selected').not('.imported').contents();
+		var listings = [];
+		for(var i=0; i<all.length;i++){
+			if(all[i].id){
+				listings.push(all[i].id);
+			}
+		}
+		var listingsUrlString = listings.join(',');
+		jQuery.ajax({
+			type : "get",
+			dataType: "json",
+			url: idxImportListingObj.url + listingsUrlString,
+			data: {
+				listings: listingsUrlString
+			},
+			beforeSend:function( xhr ){
+				xhr.setRequestHeader( 'X-WP-Nonce', idxImportListingObj.nonce);
+			},
+			success:function(response){
+				window.location.reload();
+			},
+			error:function(response){
+				console.error(response);
+			}
+		});
+	})
+
 });

@@ -9,11 +9,11 @@
 
 **Requires at least:** 4.0
 
-**Tested up to:** 4.9.4
+**Tested up to:** 5.2.3
 
-**Stable tag:** 2.3.2
+**Stable tag:** 2.5.0
 
-**Requires PHP:** 5.4
+**Requires PHP:** 5.6
 
 **License:** GPLv2 or later
 
@@ -193,6 +193,28 @@ function custom_default_property_type_terms() {
 }`
 
 ## Changelog ##
+
+## 2.5.0 ##
+*Released 3-19-2020*
+* Feature: Ability to import advanced field data with IDX Broker listings (requires an IDX Broker account and the IMPress for IDX Broker plugin installed, version 2.6.0 or higher)
+* Feature: Layout templates have been added to listings posts
+
+## 2.4.2 ##
+*Released 12-23-2019*
+* Fix: Resolved error preventing IDX listings from appearing in the import section
+
+### 2.4.1 ###
+*Released 10-10-2019*
+* Update: Improved listing import functionality
+
+### 2.4.0 ###
+*Released 07-23-2019*
+* Updated: New look for the Import IDX Listings page
+* Feature: Better error reporting on listings that fail to import
+
+### 2.3.3 ###
+*Released 03-05-2019*
+* Fix: IDX Broker listing import
 
 ### 2.3.2 ###
 *Release 08-28-2018*

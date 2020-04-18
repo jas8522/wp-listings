@@ -2,9 +2,6 @@
 if ( !class_exists( 'Idx_Broker_Plugin' ) ) {
 	echo wp_listings_admin_notice( __( '<strong>Integrate your MLS Listings into WordPress with IDX Broker!</strong> <a href="http://www.idxbroker.com/features/idx-wordpress-plugin">Find out how</a>', 'wp-listings' ), false, 'activate_plugins', 'wpl_notice_idx' );
 }
-if( !function_exists( 'equity' ) ) {
-	echo wp_listings_admin_notice( __( '<strong>Want enhanced listings? Automatically import extra details and photos with Equity.</strong> <a href="http://www.agentevolution.com/equity/">Learn how</a>', 'wp-listings' ), false, 'activate_plugins', 'wpl_notice_equity' );
-}
 
 if( isset($_GET['settings-updated']) ) { ?>
 	<div id="message" class="updated">
@@ -24,11 +21,125 @@ if( isset($_GET['settings-updated']) ) { ?>
 		</div>
 
 		<div id="post-body">
-			<div id="post-body-content" class="has-sidebar-content">
+			<div id="post-body-content" style="margin-right:0px;">
 			<script>
-			  jQuery( function() {
-			    jQuery( "#post-body-content" ).tabs();
-			  } );
+				jQuery( function() {
+					jQuery( "#post-body-content" ).tabs();
+				} );
+				function hideAllAdvFields() {
+					document.querySelectorAll('.hide-radio-button').forEach(function(value){
+						value.checked = true
+					})
+				}
+				function showAllAdvFields() {
+					document.querySelectorAll('.show-radio-button').forEach(function(value){
+						value.checked = true
+					})
+				}
+				function clearAdvCustomNameFields() {
+					document.querySelectorAll('.custom-adv-field-name-input').forEach(function(value){
+						value.value = ''
+					})
+				}
+				function toggleAdvFieldImportSetting() {
+					if ( document.querySelector('#wp_listings_import_advanced_fields').checked ) {
+						document.querySelector('#wp_listings_display_advanced_fields_container').classList.remove('disabled-adv-field-option')
+						document.querySelector('#wpl-customize-adv-fields-label').classList.remove('disabled-adv-field-option')
+						document.querySelector('#adv-field-cusomization-container').classList.remove('disabled-adv-field-option')
+					} else {
+						document.querySelector('#wp_listings_display_advanced_fields_container').classList.add('disabled-adv-field-option')
+						document.querySelector('#wpl-customize-adv-fields-label').classList.add('disabled-adv-field-option')
+						document.querySelector('#adv-field-cusomization-container').classList.add('disabled-adv-field-option')
+						document.querySelector('#wp_listings_display_advanced_fields').checked = false
+					}
+				}
+				function populateEmptyAdvCustomNameFields() {
+					document.querySelectorAll('.custom-adv-field-name-input').forEach(function(value){
+						if (value.value !== '') {
+							return
+						}
+						var fieldNameFragments = value.id.split(/(?=[A-Z])/);
+						fieldNameFragments.forEach(function(value, index){
+							// Capitalize first word
+							if (index === 0) {
+								fieldNameFragments[0] = value.charAt(0).toUpperCase() + value.slice(1);
+							}
+							// Cleanup 'YN'
+							if ( value.match(/^y$/i) || value.match(/^n$/i) || value.match(/^yn$/i) ) {
+								fieldNameFragments[index] = ''
+							}
+							// Handle common abreviations
+							// Acres
+							if ( value.match(/^ac$/i) || value.match(/^acr$/i) ) {
+								fieldNameFragments[index] = "Acres"
+							}
+							// Approximate
+							if ( value.match(/^apx$/i) || value.match(/^apox$/i) || value.match(/^appox$/i) ) {
+								fieldNameFragments[index] = "Approximate"
+							}
+							// Basement
+							if ( value.match(/^bsmt$/i) || value.match(/^bsmnt$/i) ) {
+								fieldNameFragments[index] = "Basement"
+							}
+							// Bedroom
+							if ( value.match(/^bdrm$/i) ) {
+								fieldNameFragments[index] = "Bedroom"
+							}
+							// Building
+							if ( value.match(/^bldg$/i) ) {
+								fieldNameFragments[index] = "Building"
+							}
+							if ( value.match(/^bldgs$/i) ) {
+								fieldNameFragments[index] = "Buildings"
+							}
+							// Days on Market
+							if ( value.match(/^dom$/i) ) {
+								fieldNameFragments[index] = "Days on Market"
+							}
+							// Description
+							if ( value.match(/^desc$/i) || value.match(/^descrip$/i) ) {
+								fieldNameFragments[index] = "Description"
+							}
+							// Dimensions
+							if ( value.match(/^dim$/i) ) {
+								fieldNameFragments[index] = "Dimensions"
+							}
+							// Finished /^([a-zA-Z0-9_-]){3,5}$/
+							if ( value.match(/^fin$/i) ) {
+								fieldNameFragments[index] = "Finished"
+							}
+							// Half
+							if ( value === "12" ) {
+								fieldNameFragments[index] = "Half"
+							}
+							// HOA
+							if ( value.match(/^hoa$/i) ) {
+								fieldNameFragments[index] = "HOA"
+							}
+							// Percent
+							if ( value.match(/^pct$/i) || value.match(/^prcnt$/i) ) {
+								fieldNameFragments[index] = "Percent"
+							}
+							// Room
+							if ( value.match(/^rm$/i) ) {
+								fieldNameFragments[index] = "Room"
+							}
+							// SqFt
+							if ( value.match(/^sqft$/i) ) {
+								fieldNameFragments[index] = "SqFt"
+							}
+							// Total
+							if ( value.match(/^ttl$/i) ) {
+								fieldNameFragments[index] = "Total"
+							}
+							// Unfinished
+							if ( value.match(/^unfin$/i) ) {
+								fieldNameFragments[index] = "Unfinished"
+							}
+						});
+						value.value = fieldNameFragments.join(' ');
+					})
+				}
 			</script>
 			<ul>
 				<li><a href="#tab-general">General</a></li>
@@ -36,35 +147,50 @@ if( isset($_GET['settings-updated']) ) { ?>
 				<li><a href="#tab-advanced">Advanced</a></li>
 			</ul>
 
-				<?php $options = get_option('plugin_wp_listings_settings');
+				<?php
+
+				$options = get_option( 'plugin_wp_listings_settings' );
+
+				if ( isset( $options['wp_listings_import_advanced_fields'] ) ) {
+					if ( ! get_option( 'wp_listings_advanced_field_display_options' ) ) {
+						add_option( 'wp_listings_advanced_field_display_options', [] );
+					}
+					update_advanced_field_options();
+				} else {
+					purge_advanced_field_options();
+				}
+
+				$advanced_field_options = get_option( 'wp_listings_advanced_field_display_options' );
 
 				$defaults = array(
-					'wp_listings_stylesheet_load'			=> 0,
-					'wp_listings_widgets_stylesheet_load'	=> 0,
-					'wp_listings_default_state'				=> '',
-					'wp_listings_currency_symbol'			=> '',
-					'wp_listings_currency_code'				=> '',
-					'wp_listings_display_currency_code'		=> 0,
-					'wp_listings_archive_posts_num'			=> 9,
-					'wp_listings_global_disclaimer'			=> '',
-					'wp_listings_slug'						=> 'listings',
-					'wp_listings_gmaps_api_key'				=> '',
-					'wp_listings_captcha_site_key'			=> '',
-					'wp_listings_captcha_secret_key'		=> '',
-					'wp_listings_default_form'				=> '',
-					'wp_listings_custom_wrapper'			=> 0,
-					'wp_listings_start_wrapper'				=> '',
-					'wp_listings_end_wrapper'				=> '',
-					'wp_listings_idx_lead_form'				=> 1,
-					'wp_listings_idx_update'				=> 'update-all',
-					'wp_listings_idx_sold'					=> 'sold-keep',
-					'wp_listings_auto_import'				=> 0,
-					'wp_listings_default_template'			=> '',
-					'wp_listings_display_idx_link'			=> 0,
-					'wp_listings_import_author'				=> 0,
-					'wp_listings_import_title'				=> '{{address}}',
-					'wp_listings_uninstall_delete'			=> 0
-					);
+					'wp_listings_stylesheet_load'         => 0,
+					'wp_listings_widgets_stylesheet_load' => 0,
+					'wp_listings_default_state'           => '',
+					'wp_listings_currency_symbol'         => '',
+					'wp_listings_currency_code'           => '',
+					'wp_listings_display_currency_code'   => 0,
+					'wp_listings_archive_posts_num'       => 9,
+					'wp_listings_global_disclaimer'       => '',
+					'wp_listings_slug'                    => 'listings',
+					'wp_listings_gmaps_api_key'           => '',
+					'wp_listings_captcha_site_key'        => '',
+					'wp_listings_captcha_secret_key'      => '',
+					'wp_listings_default_form'            => '',
+					'wp_listings_custom_wrapper'          => 0,
+					'wp_listings_start_wrapper'           => '',
+					'wp_listings_end_wrapper'             => '',
+					'wp_listings_idx_lead_form'           => 1,
+					'wp_listings_idx_update'              => 'update-all',
+					'wp_listings_idx_sold'                => 'sold-keep',
+					'wp_listings_auto_import'             => 0,
+					'wp_listings_default_template'        => '',
+					'wp_listings_display_idx_link'        => 0,
+					'wp_listings_import_author'           => 0,
+					'wp_listings_import_title'            => '{{address}}',
+					'wp_listings_import_advanced_fields'  => 0,
+					'wp_listings_display_advanced_fields' => 0,
+					'wp_listings_uninstall_delete'        => 0
+				);
 
 				foreach($defaults as $name => $value) {
 					if ( !isset($options[$name]) ) {
@@ -292,7 +418,7 @@ if( isset($_GET['settings-updated']) ) { ?>
 
 					_e('<p><input name="plugin_wp_listings_settings[wp_listings_widgets_stylesheet_load]" id="wp_listings_widgets_stylesheet_load" type="checkbox" value="1" class="code" ' . checked(1, $options['wp_listings_widgets_stylesheet_load'], false ) . ' /> Deregister WP Listings widgets CSS (wp-listings-widgets.css)?</p><hr>', 'wp-listings' );
 
-					_e('<h3>Forms</h3><h4>Google Recaptcha (anti-spam)</h4><p>With the default contact form, you can choose to add Google Recaptcha to prevent spam, or use a form shortcode plugin with anti-spam protection. To use Google Recaptcha, you must first <a href="https://www.google.com/recaptcha/admin" target="_blank">sign up for a key</a>, then enter the site and secret key below:</p>', 'wp-listings' );
+					_e('<h3>Forms</h3><h4>Google reCAPTCHA v2 (anti-spam)</h4><p>With the default contact form, you can choose to add Google reCAPTCHA v2 to prevent spam, or use a form shortcode plugin with anti-spam protection. To use Google reCAPTCHA v2, you must first <a href="https://www.google.com/recaptcha/admin" target="_blank">sign up for a v2 key</a>, then enter the site and secret key below:</p>', 'wp-listings' );
 					_e('<p>Site key: <input name="plugin_wp_listings_settings[wp_listings_captcha_site_key]" id="wp_listings_captcha_site_key" type="text" value="' . esc_html($options['wp_listings_captcha_site_key']) . '" size="40" /></p>', 'wp-listings');
 					_e('<p>Secret key: <input name="plugin_wp_listings_settings[wp_listings_captcha_secret_key]" id="wp_listings_captcha_secret_key" type="text" value="' . esc_html($options['wp_listings_captcha_secret_key']) . '" size="40" /></p>', 'wp-listings');
 					_e("<h4>Default Form shortcode</h4><p>If you use a Contact Form plugin, you may enter the form shortcode here to display on all listings. Additionally, each listing can use a custom form. If no shortcode is entered, the template will use a default contact form:</p>", 'wp-listings' );
@@ -319,7 +445,7 @@ if( isset($_GET['settings-updated']) ) { ?>
 
 					if(class_exists( 'Idx_Broker_Plugin' )) {
 						echo '<div id="tab-idx">';
-						_e("<h3>IDX Imported Listings</h3><p>These settings apply to any imported IDX listings. Imported listings are updated via the latest API response twice daily.</p>", 'wp-listings' );
+						_e( '<h3>IDX Imported Listings</h3><p>These settings apply to any imported IDX listings. Imported listings are updated via the latest API response twice daily.</p>', 'wp-listings' );
 						_e("<h2>Update Listings</h2>", 'wp-listings' );
 						_e('<div class="idx-import-option update-all"><label><h4>Update All</h4> <span class="dashicons dashicons-update"></span><input name="plugin_wp_listings_settings[wp_listings_idx_update]" id="wp_listings_idx_update" type="radio" value="update-all" class="code" ' . checked('update-all', $options['wp_listings_idx_update'], false ) . ' /> <p>Update all imported fields including gallery and featured image. <br /><em>* Excludes Post Title and Post Content</em></p></label></div>', 'wp-listings' );
 						_e('<div class="idx-import-option update-noimage"><label><h4>Update Excluding Images</h4> <span class="dashicons dashicons-update"></span><input name="plugin_wp_listings_settings[wp_listings_idx_update]" id="wp_listings_idx_update" type="radio" value="update-noimage" class="code" ' . checked('update-noimage', $options['wp_listings_idx_update'], false ) . ' /> <p>Update all imported fields, but excluding the gallery and featured image.<br /><em>* Also excludes Post Title and Post Content</em></p></label></div>', 'wp-listings' );
@@ -337,7 +463,8 @@ if( isset($_GET['settings-updated']) ) { ?>
 							<select name="plugin_wp_listings_settings[wp_listings_default_template]" id="listing_template" class="dropdown">');
 						_e('<option value="">Default</option>', 'wp-listings');
 						
-						$listing_templates = Single_Listing_Template::get_listing_templates();
+						$single_listing_template = new Single_Listing_Template();
+						$listing_templates = $single_listing_template->get_listing_templates();
 						/** Loop through templates, make them options */
 						foreach ( (array) $listing_templates as $template_file => $template_name ) {
 							$selected = ( $template_file == $options['wp_listings_default_template'] ) ? ' selected="selected"' : '';
@@ -354,15 +481,177 @@ if( isset($_GET['settings-updated']) ) { ?>
 							By default, imported listings use the street address as the title and permalink. You can customize that further using these available tags:<br />
 							<strong><code>{{listingid}}</code> <code>{{address}}</code> <code>{{city}}</code> <code>{{state}}</code> <code>{{zipcode}}</code></strong>
 							</p><input name="plugin_wp_listings_settings[wp_listings_import_title]" id="wp_listings_import_title" type="text" value="' . esc_html( $options['wp_listings_import_title'] ) . '" size="80" /></label><hr style="clear: both;">', 'wp-listings' );
-						echo '</div><!-- #idx-tab -->';
 
+						_e("<h2>Advanced Field Settings</h2>", 'wp-listings' );
+
+						echo '<p>';
+						echo '<input 
+							name="plugin_wp_listings_settings[wp_listings_import_advanced_fields]"
+							id="wp_listings_import_advanced_fields" 
+							type="checkbox" 
+							value="1" 
+							onclick="toggleAdvFieldImportSetting()" 
+							class="code" 
+							' . checked( 1, $options['wp_listings_import_advanced_fields'], false ) . '
+						/>';
+						_e('Import advanced field data?', 'wp-listings');
+						echo '</p>';
+
+						echo '<p id="wp_listings_display_advanced_fields_container" class="' . ($options['wp_listings_import_advanced_fields'] === 0 ? 'disabled-adv-field-option' : '' ) . '">';
+						echo '<input
+							name="plugin_wp_listings_settings[wp_listings_display_advanced_fields]" 
+							id="wp_listings_display_advanced_fields" type="checkbox" 
+							value="1" 
+							class="code"
+							' . checked(1, $options['wp_listings_display_advanced_fields'], false ) . ' 
+						/>';
+						_e('Display advanced fields on single listing pages?', 'wp-listings');
+						echo '</p>';
+
+						// If no advanced fields are imported but the option to import is enabled, show message on what to do next.
+						if ( count( $advanced_field_options ) < 1 && isset( $options['wp_listings_import_advanced_fields'] ) && $options['wp_listings_import_advanced_fields'] === "1" ) {
+							echo '<div style="font-size:10px;line-height:21px;">
+											<span class="dashicons dashicons-warning"></span>
+											<span>
+												Once new listings are imported or existing listings update after enabling the "Import advanced field data" option, advanced field display setting options will appear here.
+											</span>
+										</div>';
+						}
+
+						echo '
+								<style>
+										#idx-wp-listings-adv-fields-table {width:100%;border: 2px solid black;}
+										#idx-wp-listings-adv-fields-table td {border: 1px solid black;}
+										#idx-wp-listings-adv-fields-table .wpl-adv-name-field {width: 40%;padding-left: 5px;}
+										#idx-wp-listings-adv-fields-table .wpl-adv-custom-name-field {width: 40%;}
+										#idx-wp-listings-adv-fields-table .wpl-adv-custom-name-field input {width: 100%;}
+										#idx-wp-listings-adv-fields-table .wpl-adv-show-hide {text-align: center;}
+										#wpl-adv-field-button-container .button-primary {margin-left: 5px;border: 0px;}
+										#wpl-adv-field-button-container button:focus {outline: 0;box-shadow: none;}
+										#wpl-adv-field-button-container {display: flex;flex-direction: row-reverse;padding: 5px;padding-right: 0px;}
+										#wpl-clear-custom-names-button {background-color: #E8601B;}
+										#wpl-populate-custom-names-button {background-color: mediumseagreen;}
+										#wpl-show-all-adv-field-button {background-color: #6698cb;}
+										#wpl-hide-all-adv-field-button {background-color: #7fccde;}
+										.disabled-adv-field-option {pointer-events: none;opacity: 0.4;}
+										#adv-field-cusomization-container .button-primary:active {opacity: 0.7;}
+								</style>
+						';
+                           
+						// If any advanced fields are imported, display the adv field customization table.
+						if ( count( $advanced_field_options ) > 0 ) {
+							_e( '<div id="adv-field-cusomization-container" class="' . ($options['wp_listings_import_advanced_fields'] === 0 ? 'disabled-adv-field-option' : '' ) . '">', 'wp-listings' );
+					
+							_e(
+								'<h2 id="wpl-customize-adv-fields-label">Customize Advanced Fields</h2>
+									<div id="wpl-adv-field-button-container">
+									<button id="wpl-hide-all-adv-field-button" class="button-primary" type="button" onclick="hideAllAdvFields()" title="Set all advanced fields to hide on listing pages">Hide All Fields</button>
+									<button id="wpl-show-all-adv-field-button" class="button-primary" type="button" onclick="showAllAdvFields()" title="Set all advanced fields to display on listing pages" >Show All Fields</button>
+									<button id="wpl-populate-custom-names-button" class="button-primary" type="button" onclick="populateEmptyAdvCustomNameFields()" title="Generate a best guess name for all fields currently missing a custom name" >Generate Custom Names</button>
+									<button id="wpl-clear-custom-names-button" class="button-primary" type="button" onclick="clearAdvCustomNameFields()" title="Remove custom names from all fields" >Clear Custom Names</button>
+								</div>
+							',
+								'wp-listings'
+							);
+
+							_e( "<table id='idx-wp-listings-adv-fields-table'>", 'wp-listings' );
+							_e( "<tr><th>Field Name</th><th>Custom Name</th><th>Display</th></tr>", 'wp-listings' );
+							foreach ( $advanced_field_options as $key => $value ) {
+								_e(
+									"<tr>
+										<td class='wpl-adv-name-field'>$key</td>
+										<td class='wpl-adv-custom-name-field'>
+											<input name='wp_listings_advanced_field_display_options[$key][custom_name]' id='$key' class='custom-adv-field-name-input' type='text' value='" . esc_attr( $value['custom_name'] ) . "' />
+										</td>
+										<td class='wpl-adv-show-hide'>
+											<div class=''>
+												Show <input name='wp_listings_advanced_field_display_options[$key][display_field]' id='$key-show-checkbox' class='show-radio-button' type='radio' value='show' " . checked( 'show', $value['display_field'], false ) . " />
+												Hide <input name='wp_listings_advanced_field_display_options[$key][display_field]' id='$key-hide-checkbox' class='hide-radio-button' type='radio' value='hide' " . checked( 'hide', $value['display_field'], false ) . " />
+											</div>
+										</td>
+									</tr>",
+									'wp-listings'
+								);
+							}
+
+							_e( '</table>', 'wp-listings' );
+							_e(
+								'<div id="wpl-adv-field-button-container">
+									<button id="wpl-hide-all-adv-field-button" class="button-primary" type="button" onclick="hideAllAdvFields()" title="Set all advanced fields to hide on single listing pages.">Hide All Fields</button>
+									<button id="wpl-show-all-adv-field-button" class="button-primary" type="button" onclick="showAllAdvFields()" title="Set all advanced fields to show on single listing pages" >Show All Fields</button>
+									<button id="wpl-populate-custom-names-button" class="button-primary" type="button" onclick="populateEmptyAdvCustomNameFields()" title="Generates a best guess title for any field missing a custom name." >Generate Custom Names</button>
+									<button id="wpl-clear-custom-names-button" class="button-primary" type="button" onclick="clearAdvCustomNameFields()" title="Remove custom names from all fields. Press the Save Settings button to commit any changes." >Clear Custom Names</button>
+								</div>
+							',
+								'wp-listings'
+							);
+							echo '</div>';
+						}
+						echo '</div><!-- #idx-tab -->';
 					}
 
 					?>
-
 					<input name="submit" class="button-primary" type="submit" value="<?php esc_attr_e('Save Settings'); ?>" style="margin: 0 0 10px 10px;"/>
 				</form>
 			</div>
 		</div>
 	</div>
 </div>
+
+<?php
+
+/**
+ * Purges any saved advanced fields/Customizations currently saved.
+ */
+function purge_advanced_field_options() {
+	update_option( 'wp_listings_advanced_field_display_options', [] );
+}
+/**
+ * Gathers all advanced fields present to allow for cuztomization in settings.
+ */
+function update_advanced_field_options() {
+
+	if ( ! get_option( 'wp_listings_advanced_field_display_options' ) ) {
+		add_option( 'wp_listings_advanced_field_display_options', [] );
+	}
+
+	$adv_field_options = get_option( 'wp_listings_advanced_field_display_options' );
+	if ( ! is_array( $adv_field_options ) ) {
+		$adv_field_options = [];
+	}
+
+	$adv_fields = [];
+	$listing_posts = get_posts(
+		[
+			'numberposts' => '-1',
+			'post_type'   => 'listing',
+		]
+	);
+
+	if ( ! is_array( $listing_posts ) ) {
+		return;
+	}
+
+	foreach ( $listing_posts as $key => $value ) {
+		$listing_post_meta = get_post_meta( $value->ID );
+		// Get advanced fields from all listings and remove any duplicates.
+		if ( ! empty( $listing_post_meta['_advanced_fields'][0] ) ) {
+			$adv_fields = array_unique( array_merge( $adv_fields, array_keys( maybe_unserialize( $listing_post_meta['_advanced_fields'][0] ) ) ) );
+		}
+	}
+	if ( ! empty( $adv_fields ) ) {
+		sort( $adv_fields );
+		foreach ( $adv_fields as $value ) {
+			if ( ! array_key_exists( $value, $adv_field_options ) ) {
+				$adv_field_options[ $value ] = [
+					'custom_name'  => '',
+					'display_field' => 'show',
+				];
+			}
+		}
+	}
+
+	update_option( 'wp_listings_advanced_field_display_options', $adv_field_options );
+}
+
+?>

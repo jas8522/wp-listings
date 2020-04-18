@@ -6,6 +6,45 @@
  * @since 0.1.0
  */
 
+add_action( 'wp_head', 'default_listing_css' );
+function default_listing_css() {
+	echo
+	'<style>
+		.wplistings-single-listing tbody.left {width: 50%;margin-right:0px;margin-top:-1px;}
+		.wplistings-single-listing tbody.right {width: 50%;margin-top:-1px;}
+	</style>';
+	// Add a bottom border to a last child node if columns are different lengths, also add middle dividing line for the two column layout.
+	echo '<script>
+	window.addEventListener("DOMContentLoaded", function(){
+		// Hide extended fields if none are set
+		if ( document.querySelector(".extended .left").childElementCount === 0 && document.querySelector(".extended .right").childElementCount	=== 0	) {
+			document.querySelector(".extended").style.display = "none"
+		}
+		// Style tables
+		var detailContainerList = ["core-fields", "extended", "advanced"]
+		detailContainerList.forEach(function(element){
+			var classString = "." + CSS.escape(element)
+			var leftGroupElementCount = document.querySelector( classString + " tbody.left" ).childElementCount
+			var rightGroupElementCount = document.querySelector( classString + " tbody.right").childElementCount
+			var style = document.createElement("style")
+			style.type = "text/css"
+			if ( leftGroupElementCount > 0 && rightGroupElementCount > 0 ) {
+				if ( rightGroupElementCount < leftGroupElementCount ) {
+					style.innerHTML = "@media only screen and (min-width: 767px) {" + classString + " tbody.right tr" + "{border-bottom: solid 1px #3333;} } " + classString + " tbody.left {border-right: solid 1px #3333;}"	
+				}
+				if ( leftGroupElementCount < rightGroupElementCount ) {
+					style.innerHTML = "@media only screen and (min-width: 767px) {" + classString + " tbody.left tr {border-bottom: solid 1px #3333;} } " + classString + " tbody.right {border-left: solid 1px #3333;}"
+				}
+				if ( rightGroupElementCount === leftGroupElementCount  ) {
+					style.innerHTML = classString + " tbody.right {border-left: solid 1px #3333;}"
+				}
+				document.getElementsByTagName("head")[0].appendChild(style)
+			}
+		});
+	});
+	</script>';
+}
+
 add_action('wp_enqueue_scripts', 'enqueue_single_listing_scripts');
 function enqueue_single_listing_scripts() {
 	wp_enqueue_style( 'wp-listings-single' );
@@ -111,7 +150,7 @@ function single_listing_post_content() {
 					echo '<p class="wp-listings-disclaimer">' . $options['wp_listings_global_disclaimer'] . '</p>';
 				}
 
-				if(class_exists('Idx_Broker_Plugin') && $options['wp_listings_display_idx_link'] == true && get_post_meta($post->ID, '_listing_details_url', true)) {
+				if(class_exists('Idx_Broker_Plugin') &&  array_key_exists('wp_listings_display_idx_link', $options) && $options['wp_listings_display_idx_link'] === 1 && get_post_meta($post->ID, '_listing_details_url', true)) {
 					echo '<a href="' . get_post_meta($post->ID, '_listing_details_url', true) . '" title="' . get_post_meta($post->ID, '_listing_mls', true) . '">View full listing details</a>';
 				}
 				?>
@@ -119,60 +158,84 @@ function single_listing_post_content() {
 
 			<div id="listing-details">
 				<?php
-					$details_instance = new WP_Listings();
 
-					$pattern = '<tr class="wp_listings%s"><td class="label">%s</td><td>%s</td></tr>';
+				$details_instance = new WP_Listings();
 
-					echo '<table class="listing-details">';
+				$pattern = '<tr class="wp_listings%s"><td class="label">%s</td><td>%s</td></tr>';
 
-                    echo '<tbody class="left">';
-                    if ( get_post_meta($post->ID, '_listing_hide_price', true) == 1 ) {
-                    	echo (get_post_meta($post->ID, '_listing_price_alt', true)) ? '<tr class="wp_listings_listing_price"><td class="label">' . __('Price:', 'wp-listings') . '</td><td>'.get_post_meta( $post->ID, '_listing_price_alt', true) .'</td></tr>' : '';
-                	} elseif(get_post_meta($post->ID, '_listing_price', true)) {
-                    	echo '<tr class="wp_listings_listing_price"><td class="label">' . __('Price:', 'wp-listings') . '</td><td><span class="currency-symbol">' . $options['wp_listings_currency_symbol'] . '</span>';
-                    	echo get_post_meta( $post->ID, '_listing_price', true) . ' ';
-                    	echo (isset($options['wp_listings_display_currency_code']) && $options['wp_listings_display_currency_code'] == 1) ? '<span class="currency-code">' . $options['wp_listings_currency_code'] . '</span>' : '';
-                    	echo '</td></tr>';
-                	}
-                    echo '<div itemprop="address" itemscope itemtype="http://schema.org/PostalAddress">';
-                    echo (get_post_meta($post->ID, '_listing_address', true)) ? '<tr class="wp_listings_listing_address"><td class="label">' . __('Address:', 'wp-listings') . '</td><td itemprop="streetAddress">'.get_post_meta( $post->ID, '_listing_address', true) .'</td></tr>' : '';
-                    echo (get_post_meta($post->ID, '_listing_city', true)) ? '<tr class="wp_listings_listing_city"><td class="label">' . __('City:', 'wp-listings') . '</td><td itemprop="addressLocality">'.get_post_meta( $post->ID, '_listing_city', true) .'</td></tr>' : '';
-                    echo (get_post_meta($post->ID, '_listing_county', true)) ? '<tr class="wp_listings_listing_county"><td class="label">' . __('County:', 'wp-listings') . '</td><td>'.get_post_meta( $post->ID, '_listing_county', true) .'</td></tr>' : '';
-                    echo (get_post_meta($post->ID, '_listing_state', true)) ? '<tr class="wp_listings_listing_state"><td class="label">' . __('State:', 'wp-listings') . '</td><td itemprop="addressRegion">'.get_post_meta( $post->ID, '_listing_state', true) .'</td></tr>' : '';
-                    echo (get_post_meta($post->ID, '_listing_zip', true)) ? '<tr class="wp_listings_listing_zip"><td class="label">' . __('Zip Code:', 'wp-listings') . '</td><td itemprop="postalCode">'.get_post_meta( $post->ID, '_listing_zip', true) .'</td></tr>' : '';
-                    echo '</div>';
-                    echo (get_post_meta($post->ID, '_listing_mls', true)) ? '<tr class="wp_listings_listing_mls"><td class="label">MLS:</td><td>'.get_post_meta( $post->ID, '_listing_mls', true) .'</td></tr>' : '';
-                    echo '</tbody>';
+				echo '<table class="listing-details core-fields">';
 
-					echo '<tbody class="right">';
-					foreach ( (array) $details_instance->property_details['col2'] as $label => $key ) {
-						$detail_value = esc_html( get_post_meta($post->ID, $key, true) );
-						if (! empty( $detail_value ) ) :
-							printf( $pattern, $key, esc_html( $label ), $detail_value );
-						endif;
+				echo '<tbody class="left">';
+				if ( get_post_meta( $post->ID, '_listing_hide_price', true ) == 1 ) {
+					echo ( get_post_meta( $post->ID, '_listing_price_alt', true ) ) ? '<tr class="wp_listings_listing_price"><td class="label">' . __('Price:', 'wp-listings') . '</td><td>'.get_post_meta( $post->ID, '_listing_price_alt', true ) .'</td></tr>' : '';
+				} elseif ( get_post_meta( $post->ID, '_listing_price', true ) ) {
+					echo '<tr class="wp_listings_listing_price"><td class="label">' . __('Price:', 'wp-listings') . '</td><td><span class="currency-symbol">' . $options['wp_listings_currency_symbol'] . '</span>';
+					echo get_post_meta( $post->ID, '_listing_price', true ) . ' ';
+					echo ( isset( $options['wp_listings_display_currency_code'] ) && $options['wp_listings_display_currency_code'] == 1 ) ? '<span class="currency-code">' . $options['wp_listings_currency_code'] . '</span>' : '';
+					echo '</td></tr>';
+				}
+				echo '<div itemprop="address" itemscope itemtype="http://schema.org/PostalAddress">';
+				echo (get_post_meta($post->ID, '_listing_address', true)) ? '<tr class="wp_listings_listing_address"><td class="label">' . __('Address:', 'wp-listings') . '</td><td itemprop="streetAddress">'.get_post_meta( $post->ID, '_listing_address', true) .'</td></tr>' : '';
+				echo (get_post_meta($post->ID, '_listing_city', true)) ? '<tr class="wp_listings_listing_city"><td class="label">' . __('City:', 'wp-listings') . '</td><td itemprop="addressLocality">'.get_post_meta( $post->ID, '_listing_city', true) .'</td></tr>' : '';
+				echo (get_post_meta($post->ID, '_listing_county', true)) ? '<tr class="wp_listings_listing_county"><td class="label">' . __('County:', 'wp-listings') . '</td><td>'.get_post_meta( $post->ID, '_listing_county', true) .'</td></tr>' : '';
+				echo (get_post_meta($post->ID, '_listing_state', true)) ? '<tr class="wp_listings_listing_state"><td class="label">' . __('State:', 'wp-listings') . '</td><td itemprop="addressRegion">'.get_post_meta( $post->ID, '_listing_state', true) .'</td></tr>' : '';
+				echo (get_post_meta($post->ID, '_listing_zip', true)) ? '<tr class="wp_listings_listing_zip"><td class="label">' . __('Zip Code:', 'wp-listings') . '</td><td itemprop="postalCode">'.get_post_meta( $post->ID, '_listing_zip', true) .'</td></tr>' : '';
+				echo '</div>';
+				echo (get_post_meta($post->ID, '_listing_mls', true)) ? '<tr class="wp_listings_listing_mls"><td class="label">MLS:</td><td>'.get_post_meta( $post->ID, '_listing_mls', true) .'</td></tr>' : '';
+				echo '</tbody>';
+
+				echo '<tbody class="right">';
+				foreach ( (array) $details_instance->property_details['col2'] as $label => $key ) {
+					$detail_value = esc_html( get_post_meta($post->ID, $key, true) );
+					if (! empty( $detail_value ) ) {
+						printf( $pattern, $key, esc_html( $label ), $detail_value );
 					}
-					echo '</tbody>';
+				}
+				echo '</tbody>';
 
-					echo '</table>';
+				echo '</table>';
 
-					echo '<table class="listing-details extended">';
-					echo '<tbody class="left">';
-					foreach ( (array) $details_instance->extended_property_details['col1'] as $label => $key ) {
-						$detail_value = esc_html( get_post_meta($post->ID, $key, true) );
-						if (! empty( $detail_value ) ) :
-							printf( $pattern, $key, esc_html( $label ), $detail_value );
-						endif;
+				echo '<table class="listing-details extended">';
+				echo '<tbody class="left">';
+				foreach ( (array) $details_instance->extended_property_details['col1'] as $label => $key ) {
+					$detail_value = esc_html( get_post_meta($post->ID, $key, true) );
+					if (! empty( $detail_value ) ) {
+						printf( $pattern, $key, esc_html( $label ), $detail_value );
 					}
-					echo '</tbody>';
-					echo '<tbody class="right">';
-					foreach ( (array) $details_instance->extended_property_details['col2'] as $label => $key ) {
-						$detail_value = esc_html( get_post_meta($post->ID, $key, true) );
-						if (! empty( $detail_value ) ) :
-							printf( $pattern, $key, esc_html( $label ), $detail_value );
-						endif;
+				}
+				echo '</tbody>';
+				echo '<tbody class="right">';
+				foreach ( (array) $details_instance->extended_property_details['col2'] as $label => $key ) {
+					$detail_value = esc_html( get_post_meta($post->ID, $key, true) );
+					if (! empty( $detail_value ) ) {
+						printf( $pattern, $key, esc_html( $label ), $detail_value );
 					}
-					echo '</tbody>';
-					echo '</table>';
+				}
+				echo '</tbody>';
+				echo '</table>';
+
+				if ( isset( $options['wp_listings_display_advanced_fields'] ) && $options['wp_listings_display_advanced_fields'] ) {
+					$adv_fields = generate_adv_field_list( $post );
+					if ( count( $adv_fields ) ) {
+						echo '<table class="listing-details advanced">';
+						echo '<tbody class="left">';
+						foreach ( $adv_fields['col1'] as $key => $value ) {
+							if (! empty( $value ) ) {
+								printf( $pattern, $key, esc_html( get_adv_field_display_name( $key ) . ':' ), $value );
+							}
+						}
+						echo '</tbody>';
+
+						echo '<tbody class="right">';
+						foreach ( $adv_fields['col2'] as $key => $value ) {
+							if (! empty( $value ) ) {
+								printf( $pattern, $key, esc_html( get_adv_field_display_name( $key ) . ':'), $value );
+							}
+						}
+						echo '</tbody>';
+						echo '</table>';
+					}
+				} 
 
 				if(get_the_term_list( get_the_ID(), 'features', '<li>', '</li><li>', '</li>' ) != null) {
 					echo '<h5>' . __('Tagged Features:', 'wp-listings') . '</h5><ul class="tagged-features">';

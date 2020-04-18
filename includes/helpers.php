@@ -179,3 +179,39 @@ function get_column_class($columns) {
 
     return $column_class;
 }
+
+// Advanced field helper functions
+
+function generate_adv_field_list( $post ) {
+	$adv_field_data = get_post_meta( $post->ID, '_advanced_fields', true );
+	$adv_custom_options = get_option( 'wp_listings_advanced_field_display_options' );
+	// Check if both are arrays.
+	if ( is_array( $adv_field_data ) && is_array( $adv_custom_options ) ) {
+		foreach ( $adv_field_data as $key => $value ) {
+			if ( ! can_display_adv_field($key) ) {
+				unset($adv_field_data[$key]);
+			}
+		}
+	}
+	$field_count = count( $adv_field_data );
+	$col1 = array_slice( $adv_field_data, 0, (($field_count / 2) + ($field_count % 2)) );
+	$col2 = array_slice( $adv_field_data, (($field_count / 2) + ($field_count % 2)), $field_count / 2 );
+	return [ 'col1' => $col1, 'col2' => $col2 ];
+}
+
+function get_adv_field_display_name($adv_key) {
+	$adv_custom_options = get_option( 'wp_listings_advanced_field_display_options' );
+	if ( isset( $adv_custom_options[ $adv_key ] ) && '' !== $adv_custom_options[ $adv_key ]['custom_name'] ) {
+		return $adv_custom_options[ $adv_key ]['custom_name'];
+	}
+	return $adv_key;
+}
+
+function can_display_adv_field($adv_key) {
+	$adv_custom_options = get_option( 'wp_listings_advanced_field_display_options' );
+	if ( isset( $adv_custom_options[ $adv_key ] ) && 'show' === $adv_custom_options[ $adv_key ]['display_field'] ) {
+		return true;
+	}
+	return false;
+}
+
