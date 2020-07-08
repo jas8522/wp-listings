@@ -10,9 +10,10 @@
  */
 class WP_Listings {
 
-	var $settings_page = 'wp-listings-settings';
-	var $settings_field = 'wp_listings_taxonomies';
-	var $menu_page = 'register-taxonomies';
+	var $settings_page     = 'wp-listings-settings';
+	var $gmb_settings_page = 'wp-listings-gmb-settings';
+	var $settings_field    = 'wp_listings_taxonomies';
+	var $menu_page         = 'register-taxonomies';
 
 	var $options;
 
@@ -129,6 +130,14 @@ class WP_Listings {
 	 */
 	function settings_init() {
 		add_submenu_page( 'edit.php?post_type=listing', __( 'Settings', 'wp-listings' ), __( 'Settings', 'wp-listings' ), 'manage_options', $this->settings_page, array( &$this, 'settings_page' ) );
+
+		// Add Google My Business (gmb) settings page settings page for Platinum accounts.
+		if ( class_exists( 'Idx_Broker_Plugin' ) ) {
+			$idx_api = new \IDX\Idx_Api();
+			if ( $idx_api->platinum_account_type() ) {
+				add_submenu_page( 'edit.php?post_type=listing', __( 'IMPress Listings - Google My Business', 'wp-listings' ), __( '<small style="color:#8dc541;">beta</small><br>Google My Business', 'wp-listings' ), 'manage_options', $this->gmb_settings_page, array( &$this, 'gmb_settings_page' ) );
+			}
+		}
 	}
 
 	/**
@@ -136,6 +145,10 @@ class WP_Listings {
 	 */
 	function settings_page() {
 		include( dirname( __FILE__ ) . '/views/wp-listings-settings.php' );
+	}
+
+	function gmb_settings_page() {
+		include( dirname( __FILE__ ) . '/views/wp-listings-gmb-settings.php' );
 	}
 
 	/**

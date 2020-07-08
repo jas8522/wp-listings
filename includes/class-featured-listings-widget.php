@@ -8,7 +8,7 @@
 class WP_Listings_Featured_Listings_Widget extends WP_Widget {
 
 	function __construct() {
-		$widget_ops  = array( 'classname' => 'widget wplistings-featured-listings clearfix', 'description' => __( 'Display grid-style featured listings', 'wp-listings' ), 'customize_selective_refresh' => true );
+		$widget_ops  = array( 'classname' => 'wplistings-featured-listings clearfix', 'description' => __( 'Display grid-style featured listings', 'wp-listings' ), 'customize_selective_refresh' => true );
 		$control_ops = array( 'width' => 300, 'height' => 350 );
 		parent::__construct( 'wplistings-featured-listings', __( 'IMPress Listings - Featured Listings', 'wp-listings' ), $widget_ops, $control_ops );
 	}
@@ -121,7 +121,7 @@ class WP_Listings_Featured_Listings_Widget extends WP_Widget {
 				$loop .= sprintf( '<span class="listing-city-state-zip">%s, %s %s</span></p>', wp_listings_get_city(), wp_listings_get_state(), get_post_meta( $post->ID, '_listing_zip', true ) );
 
 				if ( '' != get_post_meta( $post->ID, '_listing_bedrooms', true ) || '' != get_post_meta( $post->ID, '_listing_bathrooms', true ) || '' != get_post_meta( $post->ID, '_listing_sqft', true )) {
-					$loop .= sprintf( '<ul class="listing-beds-baths-sqft"><li class="beds">%s<span>Beds</span></li><li class="baths">%s<span>Baths</span></li><li class="sqft">%s<span>Sq ft</span></li></ul>', get_post_meta( $post->ID, '_listing_bedrooms', true ), get_post_meta( $post->ID, '_listing_bathrooms', true ), get_post_meta( $post->ID, '_listing_sqft', true ) );
+					$loop .= sprintf( '<ul class="listing-beds-baths-sqft"><li class="beds">%s<span>Beds</span></li> <li class="baths">%s<span>Baths</span></li> <li class="sqft">%s<span>Sq ft</span></li></ul>', get_post_meta( $post->ID, '_listing_bedrooms', true ), get_post_meta( $post->ID, '_listing_bathrooms', true ), get_post_meta( $post->ID, '_listing_sqft', true ) );
 				}
 
 				$loop .= sprintf('</div><!-- .listing-widget-details -->');
@@ -131,9 +131,7 @@ class WP_Listings_Featured_Listings_Widget extends WP_Widget {
 				/** wrap in div with possible column class, and output **/
 				printf( '<div class="listing %s post-%s"><div class="listing-wrap">%s</div></div>', $column_class . $first_class, $post->ID, apply_filters( 'wp_listings_featured_listings_widget_loop', $loop ) );
 
-			endwhile; 
-			else: print('<p class="nolistings">Sorry! There are no listings at this time. Check back again soon.</p>');
-			endif;
+			endwhile; endif;
 			wp_reset_postdata();
 
 		echo $after_widget;

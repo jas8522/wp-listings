@@ -132,8 +132,7 @@ get_header(); ?>
 
 			else :
 				// If no content, include the "No posts found" template.
-				//get_template_part( 'content', 'none' );
-				print('<p class="nolistings">Sorry! There are no listings at this time. Check back again soon.</p>');
+				get_template_part( 'content', 'none' );
 
 			endif;
 

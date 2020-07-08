@@ -14,54 +14,121 @@
  */
 class Single_Listing_Template {
 
-	protected $templates;
-
 	public function __construct() {
 		add_action( 'admin_menu', [ $this, 'wplistings_add_metabox' ] );
 		add_action( 'save_post', [ $this, 'metabox_save' ], 1, 2 );
-		add_filter( 'template_include', [ $this, 'load_listing_template' ] );
-
-		$this->templates = [
-			'listing-templates/single-listing-classical.php' => 'Classical',
-			'listing-templates/single-listing-elegant.php' => 'Elegant',
-			'listing-templates/single-listing-luxurious.php' => 'Luxurious',
-			'listing-templates/single-listing-solid.php'   => 'Solid',
-			'listing-templates/single-listing-spacious.php' => 'Spacious',
-		];
-		// Only availabe for the First Impression theme.
-		if ( 'first-impression' === get_option( 'stylesheet' ) ) {
-			$this->templates['single-listing-first-impression.php'] = 'First Impression';
-		}
+		add_filter( 'single_template', [ $this, 'load_listing_template' ] );
 	}
 
-	public function load_listing_template( $template ) {
+	/**
+	 * Load_listing_template
+	 *
+	 * @param  string $template - Path of template.
+	 * @return array
+	 */
+	public function load_listing_template( $single ) {
 		global $post;
-		$post_meta = get_post_meta( $post->ID );
+		// Exit early if not listing post.
+		if ( 'listing' !== $post->post_type ) {
+			return $single;
+		}
 
-		if ( 'listing' === $post->post_type && isset( $post_meta['_wp_post_template'][0] ) ) {
-			switch ( $post_meta['_wp_post_template'][0] ) {
-				case 'listing-templates/single-listing-classical.php':
-					return plugin_dir_path( __FILE__ ) . 'listing-templates/single-listing-classical.php';
-				case 'listing-templates/single-listing-elegant.php':
-					return plugin_dir_path( __FILE__ ) . 'listing-templates/single-listing-elegant.php';
-				case 'listing-templates/single-listing-luxurious.php':
-					return plugin_dir_path( __FILE__ ) . 'listing-templates/single-listing-luxurious.php';
-				case 'listing-templates/single-listing-solid.php':
-					return plugin_dir_path( __FILE__ ) . 'listing-templates/single-listing-solid.php';
-				case 'listing-templates/single-listing-spacious.php':
-					return plugin_dir_path( __FILE__ ) . 'listing-templates/single-listing-spacious.php';
-				case 'single-listing-first-impression.php':
-					return get_stylesheet_directory() . '/single-listing-first-impression.php';
+		// Check if template file is set.
+		$post_meta = get_post_meta( $post->ID );
+		if ( isset( $post_meta['_wp_post_template'][0] ) ) {
+			// Return if template file is available.
+			if ( ! empty( $this->get_listing_templates()[ $post_meta['_wp_post_template'][0] ] ) ) {
+				return $post_meta['_wp_post_template'][0];
+			}
+			// Search for match is template file is missing.
+			$matched_template = $this->handle_missing_template( $post->ID, $post_meta['_wp_post_template'][0] );
+			if ( ! empty( $matched_template ) ) {
+				return $matched_template;
 			}
 		}
-		return $template;
+		// Check if theme has a single-listing template.
+		if ( locate_template( 'single-listing.php' ) ) {
+			return locate_template( 'single-listing.php' );
+		}
+		// Return default template if no custom template match is found.
+		return plugin_dir_path( __FILE__ ) . 'views/single-listing.php';
 	}
 
+	/**
+	 * Handle_missing_template
+	 * Temporary helper method used to correct any listings with incorrect template file locations.
+	 *
+	 * @param int    $post_id - Post ID for listing with bad template.
+	 * @param string $template_file_path - Path for missing template file.
+	 * @return string
+	 */
+	public function handle_missing_template( $post_id, $template_file_path ) {
+		$base_template_name = basename( $template_file_path );
+		$current_templates  = $this->get_listing_templates();
+		// Loop through current templates to see if a file name matches the missing template.
+		foreach ( $current_templates as $key => $value ) {
+			if ( basename( $key ) === $base_template_name ) {
+				update_post_meta( $post_id, '_wp_post_template', $key );
+				return $key;
+			}
+		}
+		return '';
+	}
+
+	/**
+	 * Get_listing_templates
+	 * Returns array with structure: [key = template file path, value = template display name]
+	 *
+	 * @return array
+	 */
 	public function get_listing_templates() {
-		return $this->templates;
+		$listing_templates = [];
+		// Gather plugin and theme provided theme files.
+		$available_templates = array_merge( $this->get_plugin_templates(), $this->get_theme_templates() );
+		foreach ( $available_templates as $full_path ) {
+			if ( ! preg_match( '|Single Listing Template:(.*)$|mi', file_get_contents( $full_path ), $header ) ) {
+				continue;
+			}
+			$listing_templates[ $full_path ] = _cleanup_header_comment( $header[1] );
+		}
+		return $listing_templates;
 	}
 
-	function listing_templates_dropdown() {
+	/**
+	 * Get_plugin_templates
+	 * Helper function to gather template files found in the plugin
+	 *
+	 * @return array
+	 */
+	public function get_plugin_templates() {
+		$plugin_files = glob( plugin_dir_path( __FILE__ ) . 'listing-templates/single-listing-*.php' );
+		if ( is_array( $plugin_files ) ) {
+			return $plugin_files;
+		}
+		return [];
+	}
+
+	/**
+	 * Get_theme_templates
+	 * Helper function to gather template files found in the theme
+	 *
+	 * @return array
+	 */
+	public function get_theme_templates() {
+		$theme_files = wp_get_theme()->get_files( 'php', 1 );
+		if ( is_array( $theme_files ) ) {
+			return $theme_files;
+		}
+		return [];
+	}
+
+	/**
+	 * Listing_templates_dropdown
+	 * Echoes dropdown of listing templates
+	 *
+	 * @return void
+	 */
+	public function listing_templates_dropdown() {
 
 		global $post;
 

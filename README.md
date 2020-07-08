@@ -9,9 +9,9 @@
 
 **Requires at least:** 4.0
 
-**Tested up to:** 5.2.3
+**Tested up to:** 5.4.1
 
-**Stable tag:** 2.5.0
+**Stable tag:** 2.5.3
 
 **Requires PHP:** 5.6
 
@@ -160,10 +160,6 @@ Yes. With an IDX Broker subscription and adding their IMPress for IDX Broker plu
 
 Yes. This plugin can be used instead of the AgentPress Listings plugin. It uses the same post type name and custom field names (along with several new fields), so the posts you've added using AgentPress, along with the associated meta data, will remain attached to the listing post. Just be sure to deactivate AgentPress before activating IMPress Listings.
 
-### My theme already has a single listing template. How do I use the one provided with the plugin? ###
-
-Some themes may already have a `single-listing.php` (and archive.php for listing archives) to display listings with the same post type name of 'listings'. Templates placed within your theme folder have precedence. To use the template(s) provided with the plugin, delete the `single-listing.php` and/or the `archive-listing.php` templates within your theme's folder (recommended to make a backup).
-
 ### How can I create a custom single listing template? ###
 
 Name your template file `single-listing-CUSTOM-NAME.php` (replace CUSTOM NAME with your own descriptive name). You can use the single-listing.php within the plugins /includes/views/ folder for a guide on how to display the post type data. You'll need to include the following block of text at the top of your custom template:
@@ -193,6 +189,23 @@ function custom_default_property_type_terms() {
 }`
 
 ## Changelog ##
+
+## 2.5.3 ##
+*Released 6-30-2020*
+* Fix: Error handling compatibility issue during the listing import process when using PHP 7+
+* Fix: Resolves issue that prevented use of a theme provided single-listing.php as the default listing post template
+
+## 2.5.2 ##
+*Released 6-17-2020*
+* Fix: Resolves minor styling issue on Google My Business scheduling page
+
+## 2.5.1 ##
+*Released 6-11-2020*
+* Feature: Automated posting to Google My Business (for IDX Broker users with a Platinum-level account)
+* Fix: Resolves issue where listing posts would not display properly on the /listings/ page
+* Fix: Custom listing post templates can be loaded from the current theme's directory
+* Fix: Listing posts missing link to full IDX Broker details page if setting is enabled
+* Fix: Resolves console error that could appear on some listing posts
 
 ## 2.5.0 ##
 *Released 3-19-2020*

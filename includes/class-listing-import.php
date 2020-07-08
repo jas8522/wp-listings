@@ -310,7 +310,7 @@ class WPL_Idx_Listing {
 		update_post_meta( $id, '_listing_half_bath', isset( $idx_featured_listing_data['partialBaths'] ) ? $idx_featured_listing_data['partialBaths'] : '' );
 
 		// Include advanced fields if setting is enabled.
-		if ( $wpl_options['wp_listings_import_advanced_fields'] ) {
+		if ( ! empty( $wpl_options['wp_listings_import_advanced_fields'] ) ) {
 			// Flatten advanced fields that have arrays for values.
 			foreach ( $idx_featured_listing_data['advanced'] as $key => $value ) {
 				if ( is_array( $value ) ) {
@@ -366,22 +366,23 @@ class WPL_Idx_Listing {
 			// Handle protocol agnostic image URLs.
 			if ( substr( $image_url, 0, 2 ) === '//' ) {
 				$response = wp_remote_get( 'https:' . $image_url );
-				try {
-					$image_data = $response['body'];
-				} catch ( Exception $e ) {
+				// If wp_remote_get() fails using https, attempt again using http before continuing.
+				if ( is_wp_error( $response ) ) {
 					$response = wp_remote_get( 'http:' . $image_url );
-					try {
-						$image_data = $response['body'];
-					} catch ( Exception $e ) {
-						$image_data = null;
-					}
+				}
+				// Check for an error and make sure $response['body'] is populated.
+				if ( is_wp_error( $response ) || empty( $response['body'] ) ) {
+					$image_data = null;
+				} else {
+					$image_data = $response['body'];
 				}
 			} else {
 				$response = wp_remote_get( $image_url );
-				try {
-					$image_data = $response['body'];
-				} catch ( Exception $e ) {
+				// Check for an error and make sure $response['body'] is populated.
+				if ( is_wp_error( $response ) || empty( $response['body'] ) ) {
 					$image_data = null;
+				} else {
+					$image_data = $response['body'];
 				}
 			}
 
@@ -853,7 +854,7 @@ class WPLBackgroundListings extends WP_Background_Process {
 				update_post_meta( $add_post, '_wp_post_template', $wpl_options['wp_listings_default_template'] );
 			}
 
-			WPL_Idx_Listing::wp_listings_idx_insert_post_meta($add_post, $property);
+			WPL_Idx_Listing::wp_listings_idx_insert_post_meta( $add_post, $property );
 		}
 
 		return false;

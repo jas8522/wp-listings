@@ -397,6 +397,10 @@ function single_listing_style() { ?>
 		font-family: sans-serif;
 	}
 
+	#listing-description .listing-full-details-link {
+		line-height: normal;
+	}
+
 	/* Tabs */
 	.listing-template .ui-tabs {
 		zoom: 1;
@@ -988,8 +992,12 @@ function single_listing_post_content() {
 
 			<div id="listing-description">
 				<?php
-					the_content( __( 'View more <span class="meta-nav">&rarr;</span>', 'wp-listings' ) );
-					echo (get_post_meta($post->ID, '_listing_featured_on', true)) ? '<p class="wp_listings_featured_on">' . get_post_meta($post->ID, '_listing_featured_on', true) . '</p>' : '';
+				the_content( __( 'View more <span class="meta-nav">&rarr;</span>', 'wp-listings' ) );
+				echo ( get_post_meta( $post->ID, '_listing_featured_on', true ) ) ? '<p class="wp_listings_featured_on">' . get_post_meta( $post->ID, '_listing_featured_on', true ) . '</p>' : '';
+
+				if ( class_exists( 'Idx_Broker_Plugin' ) && ! empty( $options['wp_listings_display_idx_link'] ) && get_post_meta( $post->ID, '_listing_details_url', true ) ) {
+					echo '<a href="' . esc_attr( get_post_meta( $post->ID, '_listing_details_url', true ) ) . '" title="' . esc_attr( get_post_meta( $post->ID, '_listing_mls', true ) ) . '" class="listing-full-details-link">View full listing details</a>';
+				}
 				?>
 			</div><!-- #listing-description -->
 

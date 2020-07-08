@@ -24,8 +24,8 @@ function default_listing_css() {
 		var detailContainerList = ["core-fields", "extended", "advanced"]
 		detailContainerList.forEach(function(element){
 			var classString = "." + CSS.escape(element)
-			var leftGroupElementCount = document.querySelector( classString + " tbody.left" ).childElementCount
-			var rightGroupElementCount = document.querySelector( classString + " tbody.right").childElementCount
+			var leftGroupElementCount = ( document.querySelector( classString + " tbody.left" ) ? document.querySelector( classString + " tbody.left" ).childElementCount : 0 )
+			var rightGroupElementCount = ( document.querySelector( classString + " tbody.right") ? document.querySelector( classString + " tbody.right").childElementCount : 0 )
 			var style = document.createElement("style")
 			style.type = "text/css"
 			if ( leftGroupElementCount > 0 && rightGroupElementCount > 0 ) {
@@ -150,8 +150,8 @@ function single_listing_post_content() {
 					echo '<p class="wp-listings-disclaimer">' . $options['wp_listings_global_disclaimer'] . '</p>';
 				}
 
-				if(class_exists('Idx_Broker_Plugin') &&  array_key_exists('wp_listings_display_idx_link', $options) && $options['wp_listings_display_idx_link'] === 1 && get_post_meta($post->ID, '_listing_details_url', true)) {
-					echo '<a href="' . get_post_meta($post->ID, '_listing_details_url', true) . '" title="' . get_post_meta($post->ID, '_listing_mls', true) . '">View full listing details</a>';
+				if ( class_exists( 'Idx_Broker_Plugin' ) && ! empty( $options['wp_listings_display_idx_link'] ) && get_post_meta( $post->ID, '_listing_details_url', true ) ) {
+					echo '<a href="' . esc_attr( get_post_meta( $post->ID, '_listing_details_url', true ) ) . '" title="' . esc_attr( get_post_meta( $post->ID, '_listing_mls', true ) ) . '" class="listing-full-details-link">View full listing details</a>';
 				}
 				?>
 			</div><!-- #listing-description -->
@@ -266,14 +266,10 @@ function single_listing_post_content() {
 			</div><!-- #listing-gallery -->
 			<?php } ?>
 
-			<?php if (get_post_meta( $post->ID, '_listing_video', true) != '') {
-				$video_url = esc_url( get_post_meta( $post->ID, '_listing_video', true), array('http', 'https') );
-			?>
+			<?php if (get_post_meta( $post->ID, '_listing_video', true) != '') { ?>
 			<div id="listing-video">
 				<div class="iframe-wrap">
-				<?php if (wp_oembed_get( $video_url )){
-					echo wp_oembed_get( $video_url );
-				} else { echo "<a href='$video_url'>$video_url</a>"; } ?>
+				<?php echo do_shortcode(get_post_meta( $post->ID, '_listing_video', true)); ?>
 				</div>
 			</div><!-- #listing-video -->
 			<?php } ?>
