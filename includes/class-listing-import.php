@@ -67,7 +67,7 @@ class WPL_Idx_Listing {
 			update_option( 'wp_listings_import_progress', true );
 			update_option( 'impress_listings_import_fail_list', [] );
 
-			require_once ABSPATH . 'wp-content/plugins/idx-broker-platinum/idx/idx-api.php';
+			require_once BASE_PLUGINS_DIR . 'idx-broker-platinum/idx/idx-api.php';
 
 			// Load IDX Broker API Class and retrieve featured properties.
 			$_idx_api   = new \IDX\Idx_Api();
@@ -127,7 +127,7 @@ class WPL_Idx_Listing {
 							'post_title'   => $title_format,
 							'post_status'  => 'publish',
 							'post_type'    => 'listing',
-							'post_author'  => ( isset( $wpl_options['import_author'] ) ) ? $wpl_options['import_author'] : 1,
+							'post_author'  => ( isset( $wpl_options['wp_listings_import_author'] ) ) ? $wpl_options['wp_listings_import_author'] : 1,
 						);
 
 						$item['opts']     = $opts;
@@ -179,7 +179,7 @@ class WPL_Idx_Listing {
 	 */
 	public static function wp_listings_update_post() {
 
-		require_once ABSPATH . 'wp-content/plugins/idx-broker-platinum/idx/idx-api.php';
+		require_once BASE_PLUGINS_DIR . 'idx-broker-platinum/idx/idx-api.php';
 
 		// Load IDX Broker API Class and retrieve featured properties.
 		$_idx_api = new \IDX\Idx_Api();
@@ -308,6 +308,8 @@ class WPL_Idx_Listing {
 		update_post_meta( $id, '_listing_bedrooms', isset( $idx_featured_listing_data['bedrooms'] ) ? $idx_featured_listing_data['bedrooms'] : '' );
 		update_post_meta( $id, '_listing_bathrooms', isset( $idx_featured_listing_data['totalBaths'] ) ? $idx_featured_listing_data['totalBaths'] : '' );
 		update_post_meta( $id, '_listing_half_bath', isset( $idx_featured_listing_data['partialBaths'] ) ? $idx_featured_listing_data['partialBaths'] : '' );
+		update_post_meta( $id, '_listing_latitude', isset( $idx_featured_listing_data['latitude'] ) ? $idx_featured_listing_data['latitude'] : '' );
+		update_post_meta( $id, '_listing_longitude', isset( $idx_featured_listing_data['longitude'] ) ? $idx_featured_listing_data['longitude'] : '' );
 
 		// Include advanced fields if setting is enabled.
 		if ( ! empty( $wpl_options['wp_listings_import_advanced_fields'] ) ) {
@@ -628,8 +630,8 @@ function wp_listings_idx_listing_setting_page() {
 
 			// Get properties from IDX Broker plugin
 			if (class_exists( 'IDX_Broker_Plugin' )) {
-				// bail if IDX plugin version is not at least 2.0
-				if($plugin_data['idx-broker-platinum/idx-broker-platinum.php']['Version'] < 2.0 ) {
+				// bail if IDX plugin version is not at least 2.0.0.
+				if ( version_compare( $plugin_data['idx-broker-platinum/idx-broker-platinum.php']['Version'], '2.0.0' ) < 0 ) {
 					add_settings_error('wp_listings_idx_listing_settings_group', 'idx_listing_update', 'You must update to <a href="' . admin_url( 'update-core.php' ) . '">IMPress for IDX Broker</a> version 2.0.0 or higher to import listings.', 'error');
 					settings_errors('wp_listings_idx_listing_settings_group');
 					return;
@@ -750,7 +752,7 @@ add_action( 'wp_listings_idx_auto_import', 'wp_listings_idx_auto_import_task' );
  */
 function wp_listings_idx_auto_import_task() {
 	if(class_exists( 'IDX_Broker_Plugin')) {
-		require_once(ABSPATH . 'wp-content/plugins/idx-broker-platinum/idx/idx-api.php');
+		require_once BASE_PLUGINS_DIR . 'idx-broker-platinum/idx/idx-api.php';
 		$_idx_api = new \IDX\Idx_Api();
 		$properties = $_idx_api->client_properties('featured');
 

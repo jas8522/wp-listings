@@ -587,6 +587,37 @@ if( isset($_GET['settings-updated']) ) { ?>
 							);
 							echo '</div>';
 						}
+						echo '<hr>';
+
+						// GMB Settings Section.
+						$idx_api     = new \IDX\Idx_Api();
+						$gmb_options = get_option( 'wp_listings_google_my_business_options' );
+						if ( $idx_api->platinum_account_type() && ! empty( $gmb_options['refresh_token'] ) ) {
+							$google_my_business_manager = WPL_Google_My_Business::get_instance();
+							// $google_my_business_options = $google_my_business_manager->wpl_get_gmb_settings_options();.
+							// Location list control.
+							_e( '<h3>Google My Business</h3>', 'wp-listings' );
+							if ( ! empty( $gmb_options['posting_logs']['last_post_status_message'] ) ) {
+								_e( '<div id="wpl-gmb-last-status-container"><strong>Last Post Status:&nbsp;</strong>' . $gmb_options['posting_logs']['last_post_status_message'] . '<button onclick="clearLastPostStatus(event);"><span class="dashicons dashicons-no-alt"></span></button></div>', 'wp-listings' );
+							}
+							_e( '<div class="gmb-reset-next-post-container">', 'wp-listings' );
+							_e( '<strong>Next Post Date:&nbsp;</strong><span id="wpl-gmb-next-post-label"> ' . $google_my_business_manager->wpl_gmb_get_next_post_time() . '</span>', 'wp-listings' );
+							_e( '</div>', 'wp-listings' );
+							_e( '<button id="wpl-reset-next-post-time-button" title="Resets next scheduled post to 12 hours from now." class="button">Reset Next Scheduled Post Time</button>', 'wp-listings' );
+							_e( '<h4 class="gmb-location-header">Locations:</h4>', 'wp-listings');
+							echo '<div id="gmb-location-picker-container">';
+							$gmb_locations = $google_my_business_manager->get_saved_gmb_locations();
+							foreach ( $gmb_locations as $key => $value ) {
+								echo '<div class="wpl-gmb-location-tag">';
+								_e( "<input onclick='locationToggled()' id='$key' type='checkbox' value='1' class='wpl-gmp-settings-checkbox'  " . ( 1 == $value['share_to_location'] ? "checked" : "" ) . "/>", 'wp-listings' );
+								_e( "<label for='$key' class='checkbox-label-slider'></label>", 'wp-listings' );
+								_e( '<strong> ' . $value['location_name'] . ':</strong> ' . $value['street_address'], 'wp-listings' );
+								echo '</div>';
+							}
+							echo '</div>';
+							_e( '<div id="wpl-gmb-clear-btn-container" ><a id="wpl-gmb-clear-settings-button" href="#">Disconnect from Google My Business</a></div>', 'wp-listings' );
+							echo '<hr>';
+						}
 						echo '</div><!-- #idx-tab -->';
 					}
 

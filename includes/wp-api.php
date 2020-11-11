@@ -188,8 +188,9 @@ add_action(
 			'wp-listings/v1',
 			'import-listings/',
 			array(
-				'methods'  => 'GET',
-				'callback' => 'wpl_rest_import_listings',
+				'methods'             => 'GET',
+				'callback'            => 'wpl_rest_import_listings',
+				'permission_callback' => '__return_true',
 			)
 		);
 	}

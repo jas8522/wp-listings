@@ -7,7 +7,7 @@
 	Author URI: http://agentevolution.com
 	Text Domain: wp-listings
 
-	Version: 2.5.3
+	Version: 2.6.0
 
 	License: GNU General Public License v2.0 (or later)
 	License URI: http://www.opensource.org/licenses/gpl-license.php
@@ -64,9 +64,10 @@ function wp_listings_init() {
 
 	global $_wp_listings, $_wp_listings_taxonomies, $_wp_listings_templates;
 
+	define( 'BASE_PLUGINS_DIR', plugin_dir_path( __DIR__ ) );
 	define( 'WP_LISTINGS_URL', plugin_dir_url( __FILE__ ) );
 	define( 'WP_LISTINGS_DIR', plugin_dir_path( __FILE__ ) );
-	define( 'WP_LISTINGS_VERSION', '2.5.3' );
+	define( 'WP_LISTINGS_VERSION', '2.4.1' );
 
 	/** Load textdomain for translation */
 	load_plugin_textdomain( 'wp-listings', false, basename( dirname( __FILE__ ) ) . '/languages/' );
@@ -84,7 +85,7 @@ function wp_listings_init() {
 	require_once( dirname( __FILE__ ) . '/includes/class-admin-notice.php' );
 	require_once( dirname( __FILE__ ) . '/includes/wp-api.php' );
 	require_once( dirname( __FILE__ ) . '/includes/integrations/wpl-google-my-business.php' );
-	WPL_Google_My_Business::getInstance();
+	WPL_Google_My_Business::get_instance();
 
 	/** Add theme support for post thumbnails if it does not exist */
 	if(!current_theme_supports('post-thumbnails')) {
@@ -131,7 +132,7 @@ function wp_listings_init() {
         }
     }
 
-    /** Enqueues wp-listings-widgets.css style file if it exists and is not deregistered in settings */
+	/** Enqueues wp-listings-widgets.css style file if it exists and is not deregistered in settings */
 	add_action('wp_enqueue_scripts', 'add_wp_listings_widgets_styles');
 	function add_wp_listings_widgets_styles() {
 
@@ -145,59 +146,71 @@ function wp_listings_init() {
 			return;
 		}
 
-        if ( file_exists(dirname( __FILE__ ) . '/includes/css/wp-listings-widgets.css') ) {
-        	wp_register_style('wp_listings_widgets', WP_LISTINGS_URL . 'includes/css/wp-listings-widgets.css', '', null, 'all');
-            wp_enqueue_style('wp_listings_widgets');
-        }
-    }
+		if ( file_exists(dirname( __FILE__ ) . '/includes/css/wp-listings-widgets.css') ) {
+			wp_register_style('wp_listings_widgets', WP_LISTINGS_URL . 'includes/css/wp-listings-widgets.css', '', null, 'all');
+				wp_enqueue_style('wp_listings_widgets');
+		}
+	}
 
-    /** Add admin scripts and styles */
-    function wp_listings_admin_scripts_styles() {
-    	$screen_id = get_current_screen();
+	/** Add admin scripts and styles */
+	function wp_listings_admin_scripts_styles() {
+		$screen_id = get_current_screen();
 		if ( 'listing_page_wp-listings-settings' === $screen_id->id || 'listing_page_wp-listings-gmb-settings' === $screen_id->id ) {
 			wp_enqueue_script( 'jquery-ui-tabs' );
 			wp_enqueue_style( 'jquery-ui-css', '//code.jquery.com/ui/1.12.1/themes/base/jquery-ui.css' );
 		}
 
 		if ( 'listing_page_wp-listings-gmb-settings' === $screen_id->id ) {
-			wp_enqueue_script( 'wp_listings_admin_integration_settings', WP_LISTINGS_URL . 'includes/js/admin-gmb-settings.js', [], '1.0.0', false );
-			wp_enqueue_style( 'wp_listings_admin_integration_css', WP_LISTINGS_URL . 'includes/css/wp-listings-gmb-admin.css' );
+			$gmb_options = WPL_Google_My_Business::get_instance()->wpl_get_gmb_settings_options();
+
+			wp_enqueue_media();
+			wp_register_script( 'impress-gmb-settings', WP_LISTINGS_URL . 'assets/google-my-business-settings.min.js', [], '1.0', true );
 			wp_localize_script(
-				'wp_listings_admin_integration_settings',
-				'wp_listings_admin_integrations',
+				'impress-gmb-settings',
+				'impressGmbAdmin',
 				[
-					'nonce-gmb-initial-tokens'           => wp_create_nonce( 'wpl_gmb_set_initial_tokens_nonce' ),
-					'nonce-gmb-update-settings'          => wp_create_nonce( 'wpl_update_gmb_settings_nonce' ),
-					'nonce-gmb-clear-settings'           => wp_create_nonce( 'wpl_clear_gmb_settings_nonce' ),
-					'nonce-gmb-reset-post-time'          => wp_create_nonce( 'wpl_reset_next_post_time_request_nonce' ),
-					'nonce-gmb-post-next-scheduled-now'  => wp_create_nonce( 'wpl_post_next_scheduled_now_nonce' ),
-					'nonce-gmb-update-exclusion-list'    => wp_create_nonce( 'wpl_update_exclusion_list_nonce' ),
-					'nonce-gmb-update-scheduled-posts'   => wp_create_nonce( 'wpl_update_scheduled_posts_nonce' ),
-					'nonce-gmb-clear-scheduled-posts'    => wp_create_nonce( 'wpl_clear_scheduled_posts_nonce' ),
-					'nonce-gmb-clear-last-post-status'   => wp_create_nonce( 'wpl_clear_last_post_status_nonce' ),
+					'wp_resource_url'                  => WP_LISTINGS_URL,
+					'nonce-gmb-post-now'               => wp_create_nonce( 'impress_gmb_post_now_nonce' ),
+					'nonce-gmb-clear-scheduled-posts'  => wp_create_nonce( 'wpl_clear_scheduled_posts_nonce' ),
+					'nonce-gmb-get-listing-posts'      => wp_create_nonce( 'impress_gmb_get_listing_posts_nonce' ),
+					'nonce-gmb-remove-from-schedule'   => wp_create_nonce( 'impress_gmb_remove_from_schedule_nonce' ),
+					'nonce-gmb-update-post-frequency'  => wp_create_nonce( 'impress_gmb_change_posting_frequency_nonce' ),
+					'nonce-gmb-dismiss-banner'         => wp_create_nonce( 'impress_gmb_dismiss_banner_nonce' ),
+					'nonce-gmb-save-custom-post'       => wp_create_nonce( 'impress_gmb_save_custom_post_nonce' ),
+					'nonce-gmb-delete-custom-post'     => wp_create_nonce( 'impress_gmb_delete_custom_post_nonce' ),
+					'nonce-gmb-get-posts-data'         => wp_create_nonce( 'impress_gmb_get_posts_data_nonce' ),
+					'nonce-gmb-update-scheduled-posts' => wp_create_nonce( 'impress_gmb_update_scheduled_posts_nonce' ),
+					// Initial values for frontend.
+					'next-scheduled-post-date'         => wp_next_scheduled( 'wp_listings_gmb_auto_post' ),
+					'auto-post-frequency'              => $gmb_options['posting_frequency'],
+					'instruction-banner-dismissed'     => ( ! empty( $gmb_options['banner_dismissed'] ) ? true : false ),
 				]
 			);
 
 		}
 
-        wp_enqueue_style( 'wp_listings_admin_css', WP_LISTINGS_URL . 'includes/css/wp-listings-admin.css' );
+		wp_enqueue_style( 'wp_listings_admin_css', WP_LISTINGS_URL . 'includes/css/wp-listings-admin.css' );
 
-        /** Enqueue Font Awesome in the Admin if IDX Broker is not installed */
+		/** Enqueue Font Awesome in the Admin if IDX Broker is not installed */
 		if (!class_exists( 'Idx_Broker_Plugin' )) {
 			wp_enqueue_style( 'font-awesome-4.7.0', 'https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css', array(), '4.7.0' );
 			wp_enqueue_style('upgrade-icon', WP_LISTINGS_URL . 'includes/css/wp-listings-upgrade.css');
 		}
 
-        global $wp_version;
-        $nonce_action = 'wp_listings_admin_notice';
+		global $wp_version;
+		$nonce_action = 'wp_listings_admin_notice';
 
 		wp_enqueue_style( 'wp-listings-admin-notice', WP_LISTINGS_URL . 'includes/css/wp-listings-admin-notice.css' );
 		wp_enqueue_script( 'wp-listings-admin', WP_LISTINGS_URL . 'includes/js/admin.js', 'media-views' );
 		wp_localize_script( 'wp-listings-admin', 'wp_listings_adminL10n', array(
-			'ajaxurl'    => admin_url( 'admin-ajax.php' ),
-			'nonce'      => wp_create_nonce( $nonce_action ),
-			'wp_version' => $wp_version,
-			'dismiss'    => __( 'Dismiss this notice', 'wp-listings' ),
+			'ajaxurl'                            => admin_url( 'admin-ajax.php' ),
+			'nonce'                              => wp_create_nonce( $nonce_action ),
+			'wp_version'                         => $wp_version,
+			'dismiss'                            => __( 'Dismiss this notice', 'wp-listings' ),
+			'nonce-gmb-logout'                   => wp_create_nonce( 'impress_gmb_logout_nonce' ),
+			'nonce-gmb-update-location-settings' => wp_create_nonce( 'impress_gmb_update_location_settings_nonce' ),
+			'nonce-gmb-reset-post-time'          => wp_create_nonce( 'wpl_reset_next_post_time_request_nonce' ),
+			'nonce-gmb-clear-last-post-status'   => wp_create_nonce( 'wpl_clear_last_post_status_nonce' ),
 		) );
 
 		$localize_script = array(
@@ -263,3 +276,20 @@ function wp_listings_register_widgets() {
 	}
 
 }
+
+/**
+ * Google My Business feature notification for Platinum IDXB users.
+ *
+ * @since 2.6.0
+ */
+function gmb_dashboard_notice() {
+	if ( ! class_exists( 'Idx_Broker_Plugin' ) ) {
+		return;
+	}
+	global $pagenow;
+	$idx_api = new \IDX\Idx_Api();
+	if ( 'index.php' === $pagenow && $idx_api->platinum_account_type() ) {
+		echo wp_listings_admin_notice( __( '<strong><span style="color:green;">New!</span> Connect IMPress Listings to your verified Google My Business profile to generate and schedule timely posts and photos of your listings. <a href="https://wordpress.org/plugins/wp-listings/" target="_blank">Learn more!</a></strong>', 'wp-listings' ), false, 'manage_categories', 'wpl_gmb_feature_notice' );
+	}
+}
+add_action( 'admin_notices', 'gmb_dashboard_notice' );

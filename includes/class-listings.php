@@ -135,7 +135,7 @@ class WP_Listings {
 		if ( class_exists( 'Idx_Broker_Plugin' ) ) {
 			$idx_api = new \IDX\Idx_Api();
 			if ( $idx_api->platinum_account_type() ) {
-				add_submenu_page( 'edit.php?post_type=listing', __( 'IMPress Listings - Google My Business', 'wp-listings' ), __( '<small style="color:#8dc541;">beta</small><br>Google My Business', 'wp-listings' ), 'manage_options', $this->gmb_settings_page, array( &$this, 'gmb_settings_page' ) );
+				add_submenu_page( 'edit.php?post_type=listing', __( 'IMPress Listings - Google My Business', 'wp-listings' ), __( 'Google My Business', 'wp-listings' ), 'manage_options', $this->gmb_settings_page, array( &$this, 'gmb_settings_page' ) );
 			}
 		}
 	}

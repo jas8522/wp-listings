@@ -7,36 +7,378 @@
  */
 class WPL_Google_My_Business {
 
-
+	/**
+	 * Singleton instance variable.
+	 *
+	 * @var WPL_Google_My_Business.
+	 */
 	private static $instance = null;
+
+	/**
+	 * Get_Instance.
+	 * Returns singleton instance of class.
+	 *
+	 * @return WPL_Google_My_Business
+	 */
+	public static function get_instance() {
+		if ( null === self::$instance ) {
+			self::$instance = new WPL_Google_My_Business();
+		}
+		return self::$instance;
+	}
 
 	/**
 	 * Class constructor.
 	 */
 	private function __construct() {
-		add_action( 'wp_ajax_wpl_gmb_set_initial_tokens', [ $this, 'wpl_gmb_set_initial_tokens' ] );
-		add_action( 'wp_ajax_wpl_clear_gmb_settings', [ $this, 'wpl_clear_gmb_settings' ] );
-		add_action( 'wp_ajax_wpl_update_gmb_preferences', [ $this, 'wpl_update_gmb_preferences' ] );
-		add_action( 'wp_ajax_wpl_reset_next_post_time_request', [ $this, 'wpl_reset_next_post_time_request' ] );
-
-		add_action( 'wp_ajax_wpl_post_next_scheduled_now', [ $this, 'wpl_post_next_scheduled_now' ] );
-		add_action( 'wp_ajax_wpl_update_scheduled_posts', [ $this, 'wpl_update_scheduled_posts' ] );
-		add_action( 'wp_ajax_wpl_clear_scheduled_posts', [ $this, 'wpl_clear_scheduled_posts' ] );
-		add_action( 'wp_ajax_wpl_update_exclusion_list', [ $this, 'wpl_update_exclusion_list' ] );
-		add_action( 'wp_ajax_wpl_clear_last_post_status', [ $this, 'wpl_clear_last_post_status' ] );
-
 		// Set hook for cron event and custom schedules.
 		add_filter( 'cron_schedules', [ $this, 'wpl_gmb_event_schedules' ], 10, 2 );
+		// Set actions.
 		add_action( 'wp_listings_gmb_auto_post', [ $this, 'wpl_gmb_scheduled_post' ] );
+		add_action( 'wp_ajax_wpl_gmb_set_initial_tokens', [ $this, 'wpl_gmb_set_initial_tokens' ] );
+		add_action( 'wp_ajax_impress_gmb_update_location_settings', [ $this, 'impress_gmb_update_location_settings' ] );
+		add_action( 'wp_ajax_wpl_reset_next_post_time_request', [ $this, 'wpl_reset_next_post_time_request' ] );
+		add_action( 'wp_ajax_impress_gmb_post_now', [ $this, 'impress_gmb_post_now' ] );
+		add_action( 'wp_ajax_impress_gmb_update_scheduled_posts', [ $this, 'impress_gmb_update_scheduled_posts' ] );
+		add_action( 'wp_ajax_wpl_clear_last_post_status', [ $this, 'wpl_clear_last_post_status' ] );
+		add_action( 'wp_ajax_impress_gmb_remove_from_schedule', [ $this, 'impress_gmb_remove_from_schedule' ] );
+		add_action( 'wp_ajax_impress_gmb_get_listing_posts', [ $this, 'impress_gmb_get_listing_posts' ] );
+		add_action( 'wp_ajax_impress_gmb_change_posting_frequency', [ $this, 'impress_gmb_change_posting_frequency' ] );
+		add_action( 'wp_ajax_impress_gmb_dismiss_banner', [ $this, 'impress_gmb_dismiss_banner'] );
+		add_action( 'wp_ajax_impress_gmb_save_custom_post', [ $this, 'impress_gmb_save_custom_post'] );
+		add_action( 'wp_ajax_impress_gmb_delete_custom_post', [ $this, 'impress_gmb_delete_custom_post'] );
+		add_action( 'wp_ajax_impress_gmb_get_posts_data', [ $this, 'impress_gmb_get_posts_data'] );
+		add_action( 'wp_ajax_impress_gmb_logout', [ $this, 'impress_gmb_logout' ] );
+		// Create custom post type.
+		$this->create_gmb_posttype();
 	}
 
-	// The object is created from within the class itself
-	// only if the class has no instance.
-	public static function getInstance() {
-		if ( self::$instance == null ) {
-			self::$instance = new WPL_Google_My_Business();
+	/**
+	 * IMPress_GMB_Get_Posts_Data.
+	 * Used to get custom and scheduled posts information.
+	 *
+	 * @return void
+	 */
+	public function impress_gmb_get_posts_data() {
+		// User capability check.
+		if ( ! current_user_can( 'publish_posts' ) || ! current_user_can( 'edit_posts' ) ) {
+			echo 'check permissions';
+			wp_die();
 		}
-		return self::$instance;
+
+		// Validate and process request.
+		if ( isset( $_POST['nonce'] ) && wp_verify_nonce( sanitize_key( $_POST['nonce'] ), 'impress_gmb_get_posts_data_nonce' ) ) {
+			$options = $this->wpl_get_gmb_settings_options();
+			$data    = [
+				'byId'         => [],
+				'allIds'       => [],
+				'scheduledIds' => array_values( $options['scheduled_posts'] ),
+			];
+
+			$custom_gmb_posts = get_posts(
+				[
+					'post_type'   => 'impress_gmb_post',
+					'post_status' => 'draft',
+					'numberposts' => -1,
+					'order'       => 'DESC',
+				]
+			);
+
+			foreach ( $custom_gmb_posts as $key => $custom_post ) {
+				// Add ID to allIds array.
+				$data['allIds'][] = $custom_post->ID;
+
+				$post_meta = get_post_meta( $custom_post->ID );
+
+				$data['byId'][ $custom_post->ID ] = [
+					'id'            => $custom_post->ID,
+					'postUrl'       => $post_meta['post_link_url'][0],
+					'imageUrl'      => $post_meta['post_photo_url'][0],
+					'summary'       => substr( wp_strip_all_tags( $custom_post->post_content ), 0, 1499 ),
+					'title'         => $custom_post->post_title,
+					'lastPublished' => ( ! empty( $post_meta['last_published'][0] ) ? $post_meta['last_published'][0] : '' ),
+				];
+			}
+			wp_send_json( $data, 200 );
+		}
+		wp_die();
+	}
+
+	/**
+	 * IMPress_GMB_Dismiss_Banner.
+	 * Dismisses initial help banner.
+	 *
+	 * @return void
+	 */
+	public function impress_gmb_dismiss_banner() {
+		// User capability check.
+		if ( ! current_user_can( 'publish_posts' ) || ! current_user_can( 'edit_posts' ) ) {
+			echo 'check permissions';
+			wp_die();
+		}
+
+		// Validate and process request.
+		if ( isset( $_POST['nonce'] ) && wp_verify_nonce( sanitize_key( $_POST['nonce'] ), 'impress_gmb_dismiss_banner_nonce' ) ) {
+			$options                     = $this->wpl_get_gmb_settings_options();
+			$options['banner_dismissed'] = true;
+			update_option( 'wp_listings_google_my_business_options', $options );
+		}
+		wp_die();
+	}
+
+	/**
+	 * IMPress_GMB_Change_Posting_Frequency.
+	 * Change auto posting frequency.
+	 *
+	 * @return void
+	 */
+	public function impress_gmb_change_posting_frequency() {
+		// User capability check.
+		if ( ! current_user_can( 'publish_posts' ) || ! current_user_can( 'edit_posts' ) ) {
+			echo 'check permissions';
+			wp_die();
+		}
+
+		// Validate and process request.
+		if ( isset( $_POST['nonce'], $_POST['interval'] ) && wp_verify_nonce( sanitize_key( $_POST['nonce'] ), 'impress_gmb_change_posting_frequency_nonce' ) ) {
+			$options = $this->wpl_get_gmb_settings_options();
+
+			switch ( intval( $_POST['interval'] ) ) {
+				case 0:
+					$new_value = 'weekly';
+					break;
+				case 1:
+					$new_value = 'biweekly';
+					break;
+				case 2:
+					$new_value = 'monthly';
+					break;
+				default:
+					$new_value = 'weekly';
+			}
+
+			if ( $new_value !== $options['posting_frequency'] ) {
+				$options['posting_frequency'] = $new_value;
+				update_option( 'wp_listings_google_my_business_options', $options );
+				$this->wpl_gmb_update_scheduled_posting_interval( $new_value );
+			}
+
+			wp_send_json( $new_value, 200 );
+		}
+
+		wp_die();
+	}
+
+	/**
+	 * IMPress_GMB_Remove_From_Schedule.
+	 * Remove item from schedule.
+	 *
+	 * @return void
+	 */
+	public function impress_gmb_remove_from_schedule() {
+		// User capability check.
+		if ( ! current_user_can( 'publish_posts' ) || ! current_user_can( 'edit_posts' ) ) {
+			echo 'check permissions';
+			wp_die();
+		}
+
+		// Validate and process request.
+		if ( isset( $_POST['nonce'], $_POST['index'] ) && wp_verify_nonce( sanitize_key( $_POST['nonce'] ), 'impress_gmb_remove_from_schedule_nonce' ) ) {
+			$options = $this->wpl_get_gmb_settings_options();
+			if ( ! empty( $options['scheduled_posts'][ $_POST['index'] ] ) ) {
+				// If post is removed from schedule, replace is placeholder. If placeholder is removed, delete entry from schedule_posts.
+				if ( $options['scheduled_posts'][ $_POST['index'] ] === '-' ) {
+					unset( $options['scheduled_posts'][ $_POST['index'] ] );
+				} else {
+					$options['scheduled_posts'][ $_POST['index'] ] = '-';
+				}
+				// Re-index after removal.
+				$options['scheduled_posts'] = array_values( $options['scheduled_posts'] );
+				update_option( 'wp_listings_google_my_business_options', $options );
+				wp_send_json( 'success', 200 );
+			}
+		}
+		wp_die();
+	}
+
+	/**
+	 * IMPress_GMB_Get_Listing_Posts.
+	 * Get impress listing posts.
+	 *
+	 * @return void
+	 */
+	public function impress_gmb_get_listing_posts() {
+		// User capability check.
+		if ( ! current_user_can( 'read' ) ) {
+			echo 'check permissions';
+			wp_die();
+		}
+
+		// Validate and process request.
+		if ( isset( $_POST['nonce'] ) && wp_verify_nonce( sanitize_key( $_POST['nonce'] ), 'impress_gmb_get_listing_posts_nonce' ) ) {
+			$impress_listings_options   = get_option( 'plugin_wp_listings_settings' );
+			$impress_listings_post_slug = ( empty( $impress_listing_options['wp_listings_slug'] ) ? 'listing' : $impress_listing_options['wp_listings_slug'] );
+
+			$listing_posts = get_posts(
+				[
+					'post_type'   => $impress_listings_post_slug,
+					'post_status' => 'publish',
+					'numberposts' => -1,
+					'order'       => 'DESC',
+				]
+			);
+
+			$parsed_data = [];
+			foreach ( $listing_posts as $key => $listing ) {
+				$parsed_data[] = [
+					'id'       => $listing->ID,
+					'postUrl'  => get_permalink( $listing ),
+					'imageUrl' => get_the_post_thumbnail_url( $listing, 'full' ),
+					'summary'  => substr( wp_strip_all_tags( $listing->post_content ), 0, 1499 ),
+					'title'    => $listing->post_title,
+				];
+			}
+			wp_send_json( $parsed_data, 200 );
+		}
+		wp_die();
+	}
+
+	/**
+	 * Create_GMB_Posttype.
+	 * Creates custom IMPress GMB post type.
+	 *
+	 * @return void
+	 */
+	public function create_gmb_posttype() {
+		register_post_type(
+			'impress_gmb_post',
+			[
+				'labels'       => [
+					'name'          => __( 'IMPress_GMB_Posts', 'wp-listings' ),
+					'singular_name' => __( 'IMPress_GMB_Post', 'wp-listings' ),
+				],
+				'has_archive'  => false,
+				'rewrite'      => [ 'slug' => 'impress_gmb_post' ],
+				'show_in_rest' => true,
+			]
+		);
+	}
+
+	/**
+	 * IMPress_GMB_Save_Custom_Post.
+	 * Creates or updates a IMPress GMB custom post.
+	 *
+	 * @return void
+	 */
+	public function impress_gmb_save_custom_post() {
+		// User capability check.
+		if ( ! current_user_can( 'publish_posts' ) || ! current_user_can( 'edit_posts' ) ) {
+			echo 'check permissions';
+			wp_die();
+		}
+
+		// Validate and process request.
+		if ( isset( $_POST['nonce'], $_POST['title'], $_POST['postUrl'], $_POST['imageUrl'], $_POST['summary'] ) && wp_verify_nonce( sanitize_key( $_POST['nonce'] ), 'impress_gmb_save_custom_post_nonce' ) ) {
+
+			$post_data = [
+				'post_title'   => sanitize_text_field( wp_unslash( $_POST['title'] ) ),
+				'post_type'    => 'impress_gmb_post',
+				'post_content' => sanitize_text_field( wp_unslash( $_POST['summary'] ) ),
+				'meta_input'   => [
+					'post_link_url'  => sanitize_text_field( wp_unslash( $_POST['postUrl'] ) ),
+					'post_photo_url' => sanitize_text_field( wp_unslash( $_POST['imageUrl'] ) ),
+					'last_published' => '',
+				],
+			];
+
+			if ( ! empty( $_POST['id'] ) ) {
+				$post_id = sanitize_text_field( wp_unslash( $_POST['id'] ) );
+				// Verify custom post type before setting ID to prevent editing of non-impress_gmb_post typed posts.
+				if ( 'impress_gmb_post' === get_post_type( $post_id ) ) {
+					$post_data['ID'] = $post_id;
+				}
+			}
+
+			// If ID is set, update post, otherwise create new.
+			$add_to_schedule = false;
+			if ( empty( $post_data['ID'] ) ) {
+				$post_output     = wp_insert_post( $post_data );
+				$add_to_schedule = true;
+			} else {
+				$post_output = wp_update_post( $post_data );
+			}
+
+			if ( ! is_wp_error( $post_output ) ) {
+				$new_post = [
+					'id'            => $post_output,
+					'title'         => $post_data['post_title'],
+					'summary'       => $post_data['post_content'],
+					'postUrl'       => $post_data['meta_input']['post_link_url'],
+					'imageUrl'      => $post_data['meta_input']['post_photo_url'],
+					'lastPublished' => $post_data['meta_input']['last_published'],
+				];
+
+				if ( $add_to_schedule ) {
+					$options = $this->wpl_get_gmb_settings_options();
+					// Replace first placeholder entry is exists, otherwise append to end.
+					$first_placeholder_index = array_search( '-', $options['scheduled_posts'], true );
+					if ( $first_placeholder_index !== false ) {
+						$options['scheduled_posts'][ $first_placeholder_index ] = $post_output;
+					} else {
+						$options['scheduled_posts'][] = $post_output;
+					}
+					update_option( 'wp_listings_google_my_business_options', $options );
+				}
+				wp_send_json( $new_post, 200 );
+			}
+
+		}
+		wp_die();
+	}
+
+	/**
+	 * IMPress_GMB_Delete_Custom_Post.
+	 * Deletes custom GMB post.
+	 *
+	 * @return void
+	 */
+	public function impress_gmb_delete_custom_post() {
+		// User capability check.
+		if ( ! current_user_can( 'delete_posts' ) || ! current_user_can( 'delete_others_posts' ) ) {
+			echo 'check permissions';
+			wp_die();
+		}
+
+		// Validate and process request.
+		if ( isset( $_POST['nonce'], $_POST['postId'] ) && wp_verify_nonce( sanitize_key( $_POST['nonce'] ), 'impress_gmb_delete_custom_post_nonce' ) ) {
+			$post_id = sanitize_text_field( wp_unslash( $_POST['postId'] ) );
+			$options = $this->wpl_get_gmb_settings_options();
+
+			// Verify custom post type before deleting.
+			if ( 'impress_gmb_post' !== get_post_type( $post_id ) ) {
+				echo 'Incorrect post type';
+				wp_die();
+			}
+
+			$deleted_post = wp_delete_post( $post_id, true );
+
+			// Remove all entries from scheduled posts.
+			foreach ( $options['scheduled_posts'] as $key => $value ) {
+				if ( $value == $post_id ) {
+					unset( $options['scheduled_posts'][ $key ] );
+				}
+			}
+
+			update_option( 'wp_listings_google_my_business_options', $options );
+
+			if ( $deleted_post ) {
+				wp_send_json( $post_id, 200 );
+			} else {
+				echo 'Custom GMB post deletion failed';
+			}
+		}
+
+		wp_die();
 	}
 
 
@@ -47,26 +389,14 @@ class WPL_Google_My_Business {
 	public function wpl_get_gmb_settings_options() {
 		$options  = get_option( 'wp_listings_google_my_business_options', [] );
 		$defaults = [
-			'access_token'     => '',
-			'refresh_token'    => '',
-			'locations'        => [],
-			'posting_settings' => [
-				'posting_frequency'        => 'weekly',
-				'empty_schedule_auto_post' => 0,
-				'scheduled_posts'          => [],
-				'excluded_posts'           => [],
-			],
-			'posting_defaults' => [
-				'default_link'             => '',
-				'default_link_override'    => 0,
-				'default_summary'          => '',
-				'default_summary_override' => 0,
-				'default_photo'            => '',
-				'default_photo_override'   => 0,
-			],
+			'access_token'      => '',
+			'refresh_token'     => '',
+			'locations'         => [],
+			'banner_dismissed'  => 0,
+			'posting_frequency' => 'weekly',
+			'scheduled_posts'   => [],
 			'posting_logs'     => [
 				'last_post_status_message' => '',
-				'used_post_ids'            => [],
 				'last_post_timestamp'      => '',
 			],
 		];
@@ -179,7 +509,7 @@ class WPL_Google_My_Business {
 	 * Update_GMB_Preferences.
 	 * Set preferences via Ajax call from the Integrations settings page.
 	 */
-	public function wpl_update_gmb_preferences() {
+	public function impress_gmb_update_location_settings() {
 		// User capability check.
 		if ( ! current_user_can( 'manage_categories' ) ) {
 			echo 'check permissions';
@@ -187,41 +517,12 @@ class WPL_Google_My_Business {
 		}
 
 		// Validate and process request.
-		if ( isset( $_POST['settings']['posting_settings'], $_POST['settings']['posting_defaults'], $_POST['settings']['locations'], $_POST['nonce'] ) && wp_verify_nonce( sanitize_key( $_POST['nonce'] ), 'wpl_update_gmb_settings_nonce' ) ) {
+		if ( isset( $_POST['locations'], $_POST['nonce'] ) && wp_verify_nonce( sanitize_key( $_POST['nonce'] ), 'impress_gmb_update_location_settings_nonce' ) ) {
 			$options = $this->wpl_get_gmb_settings_options();
-
-			// Parse posting settings.
-			// Posting frequency.
-			if ( ! empty( $_POST['settings']['posting_settings']['posting_frequency'] ) && is_string( $_POST['settings']['posting_settings']['posting_frequency'] ) ) {
-				$options['posting_settings']['posting_frequency'] = sanitize_text_field( wp_unslash( $_POST['settings']['posting_settings']['posting_frequency'] ) );
-				$this->wpl_gmb_update_scheduled_posting_interval( $options['posting_settings']['posting_frequency'] );
-			}
-			// Use listing data and post without schedule.
-			$options['posting_settings']['empty_schedule_auto_post'] = ( ! empty( $_POST['settings']['posting_settings']['empty_schedule_auto_post'] ) ? 1 : 0 );
-
-			// Parse default posting settings.
-			// Default Link/Photo/Content strings.
-			if ( isset( $_POST['settings']['posting_defaults']['default_link'] ) ) {
-				$options['posting_defaults']['default_link'] = sanitize_text_field( wp_unslash( $_POST['settings']['posting_defaults']['default_link'] ) );
-			}
-
-			if ( isset( $_POST['settings']['posting_defaults']['default_photo'] ) ) {
-				$options['posting_defaults']['default_photo'] = sanitize_text_field( wp_unslash( $_POST['settings']['posting_defaults']['default_photo'] ) );
-			}
-
-			if ( isset( $_POST['settings']['posting_defaults']['default_summary'] ) ) {
-				$options['posting_defaults']['default_summary'] = sanitize_text_field( wp_unslash( $_POST['settings']['posting_defaults']['default_summary'] ) );
-			}
-
-			// Listings data override toggles.
-			$options['posting_defaults']['default_link_override']    = ( ! empty( $_POST['settings']['posting_defaults']['default_link_override'] ? 1 : 0 ) );
-			$options['posting_defaults']['default_photo_override']   = ( ! empty( $_POST['settings']['posting_defaults']['default_photo_override'] ? 1 : 0 ) );
-			$options['posting_defaults']['default_summary_override'] = ( ! empty( $_POST['settings']['posting_defaults']['default_summary_override'] ? 1 : 0 ) );
-
 			// Parse location settings.
 			$location_share_settings = [];
-			if ( ! empty( $_POST['settings']['locations'] ) && is_array( $_POST['settings']['locations'] ) ) {
-				$location_share_settings = filter_var_array( wp_unslash( $_POST['settings']['locations'] ), FILTER_SANITIZE_NUMBER_INT );
+			if ( ! empty( $_POST['locations'] ) && is_array( $_POST['locations'] ) ) {
+				$location_share_settings = filter_var_array( wp_unslash( $_POST['locations'] ), FILTER_SANITIZE_NUMBER_INT );
 			}
 
 			foreach ( $location_share_settings as $key => $value ) {
@@ -233,7 +534,6 @@ class WPL_Google_My_Business {
 			}
 			// Update options, echo success, and kill connection.
 			update_option( 'wp_listings_google_my_business_options', $options );
-
 			echo 'success';
 			wp_die();
 		}
@@ -246,14 +546,14 @@ class WPL_Google_My_Business {
 	 * Clear_GMB_Settings.
 	 * Clears all saved GMB settings, sets feature back to unlogged-in/default state.
 	 */
-	public function wpl_clear_gmb_settings() {
+	public function impress_gmb_logout() {
 		// User capability check.
 		if ( ! current_user_can( 'manage_categories' ) ) {
 			echo 'check permissions';
 			wp_die();
 		}
 		// Validate and process request.
-		if ( isset( $_REQUEST['nonce'] ) && wp_verify_nonce( sanitize_key( $_REQUEST['nonce'] ), 'wpl_clear_gmb_settings_nonce' ) ) {
+		if ( isset( $_REQUEST['nonce'] ) && wp_verify_nonce( sanitize_key( $_REQUEST['nonce'] ), 'impress_gmb_logout_nonce' ) ) {
 			// Clear options.
 			delete_option( 'wp_listings_google_my_business_options' );
 			// Clear transients.
@@ -430,60 +730,6 @@ class WPL_Google_My_Business {
 	// Posting Functions.
 
 	/**
-	 * Publish_default_post_to_gmb.
-	 * Takes saved default values and posts them using publish_post_to_gmb().
-	 *
-	 * @return void
-	 */
-	public function publish_default_post_to_gmb() {
-		$options   = $this->wpl_get_gmb_settings_options();
-		$summary   = $options['posting_defaults']['default_summary'];
-		$photo_url = $options['posting_defaults']['default_photo'];
-		$page_url  = $options['posting_defaults']['default_link'];
-		$this->publish_post_to_gmb( $summary, $photo_url, $page_url );
-	}
-
-	/**
-	 * Post_With_Listing_Data.
-	 * Gathers 50 most recent listing posts, looks for one that has not been shared yet, and submits it to wpl_gmb_get_data_from_post_id().
-	 *
-	 * @return void
-	 */
-	public function wpl_gmb_post_with_listing_data() {
-		$options = $this->wpl_get_gmb_settings_options();
-		$recent_listing_posts = wp_get_recent_posts(
-			[
-				'post_type'   => 'listing',
-				'post_status' => 'publish',
-				'numberposts' => 50,
-			]
-		);
-
-		// Fallback if no listing posts are imported, attempt to post default values.
-		if ( empty( $recent_listing_posts ) ) {
-			$this->publish_default_post_to_gmb();
-			return;
-		}
-
-		foreach ( $recent_listing_posts as $key => $listing_post ) {
-			if ( ! in_array( $listing_post['ID'], $options['posting_logs']['used_post_ids'] ) ) {
-				$this->wpl_gmb_get_data_from_post_id( $listing_post['ID'] );
-				return;
-			}
-		}
-
-		// Reaching this point means listings exist but all have been shared or at least attempted. Reset the list and try sharing the newest listing.
-		$this->wpl_gmb_update_logs( 'used_post_ids', [] );
-		// Start sharing over again with most recent post.
-		if ( $recent_listing_posts[0]['ID'] ) {
-			$this->wpl_gmb_get_data_from_post_id( $recent_listing_posts[0]['ID'] );
-		} else {
-			// Final fallback if everything else failed trying to post using listing data.
-			$this->publish_default_post_to_gmb();
-		}
-	}
-
-	/**
 	 * Get_Data_From_Post_ID.
 	 * Gathers info from a listing post and passed the required values to publish_post_to_gmb().
 	 *
@@ -495,6 +741,7 @@ class WPL_Google_My_Business {
 		$options = $this->wpl_get_gmb_settings_options();
 
 		$post = get_post( $post_id );
+		$post_meta = get_post_meta( $post->ID );
 
 		// Just in case get_post fails.
 		if ( ! $post ) {
@@ -502,40 +749,9 @@ class WPL_Google_My_Business {
 			return;
 		}
 
-		// If override is set for a given field, use the default value instead of the value found in the post.
-		$summary  = ( $options['posting_defaults']['default_summary_override'] ? $options['posting_defaults']['default_summary'] : $post->post_content );
-		$page_url = ( $options['posting_defaults']['default_link_override'] ? $options['posting_defaults']['default_link'] : get_permalink( $post_id ) );
-
-		$photo_url = '';
-		// If photo is set to use default value, use that. Otherwise try to the post thumbnail, and lastely fall back to default if thumbnail fails.
-		if ( $options['posting_defaults']['default_photo_override'] ) {
-			$photo_url = $options['posting_defaults']['default_photo'];
-		} elseif ( has_post_thumbnail( $post_id ) ) {
-			// Between 10 KB and 5 MB, Minimum resolution: 250px height, 250px wide.
-			$listing_image_url = get_the_post_thumbnail_url( $post_id, 'full' );
-			// If full sized image is not available, grab what is.
-			if ( ! $listing_image_url ) {
-				$listing_image_url = get_the_post_thumbnail_url( $post_id );
-			}
-			// Get image headers for file size.
-			$image_headers = get_headers( $listing_image_url, true );
-			// Get image size info for dimensions.
-			$image_size_info = getimagesize( $listing_image_url );
-			// If no Content-Length is found to check image size, assume image is above 10240 byte threshold.
-			$image_size = 10241;
-			if ( isset( $headers['Content-Length'] ) ) {
-				$image_size = intval( $headers['Content-Length'] );
-			}
-			// Check image height, width, minimum size, and maximum size.
-			if ( $image_size_info[0] > 250 && $image_size_info[1] > 250 && $image_size > 10240 && $image_size < 5242880 ) {
-				$photo_url = $listing_image_url;
-			}
-		}
-
-		// If the photo default override isn't set, and getting the thumbnail URL fails, assign the default value as a final fallback.
-		if ( empty( $photo_url ) ) {
-			$photo_url = $options['posting_defaults']['default_photo'];
-		}
+		$summary   = $post->post_content;
+		$page_url  = $post_meta['post_link_url'];
+		$photo_url = $post_meta['post_photo_url'];
 
 		// Check if all values are populated and submit post.
 		if ( isset( $summary, $photo_url, $page_url ) ) {
@@ -627,9 +843,11 @@ class WPL_Google_My_Business {
 					// If a post ID was included in the function call, remove it from the schedule and update posting log.
 					if ( $post_id ) {
 						$this->wpl_gmb_update_logs( 'used_post_ids', $post_id );
-						$scheduled_key = array_search( $post_id, $options['posting_settings']['scheduled_posts'], true );
+						update_post_meta( $post_id, 'last_published', date( 'm/d/Y' ) );
+
+						$scheduled_key = array_search( $post_id, $options['scheduled_posts'], true );
 						if ( false !== $scheduled_key ) {
-							array_splice( $options['posting_settings']['scheduled_posts'], $scheduled_key, 1 );
+							array_splice( $options['scheduled_posts'], $scheduled_key, 1 );
 							update_option( 'wp_listings_google_my_business_options', $options );
 						}
 					}
@@ -667,8 +885,6 @@ class WPL_Google_My_Business {
 
 		// Only reachable if no locations are found with sharing enabled.
 		$this->wpl_gmb_update_logs( 'last_post_status_message', 'Oops! Post Unsuccessful - No locations selected.' );
-		return;
-
 	}
 
 	// Scheduling Functions.
@@ -686,15 +902,14 @@ class WPL_Google_My_Business {
 		$options = $this->wpl_get_gmb_settings_options();
 
 		// If post is scheduled.
-		if ( ! empty( $options['posting_settings']['scheduled_posts'] ) && get_post_status( $options['posting_settings']['scheduled_posts'][0] ) ) {
-			$this->wpl_gmb_get_data_from_post_id( $options['posting_settings']['scheduled_posts'][0] );
-			return;
-		}
-
-		// If use schedule is empty and empty_schedule_auto_post is enabled.
-		if ( $options['posting_settings']['empty_schedule_auto_post'] ) {
-			$this->wpl_gmb_post_with_listing_data();
-			return;
+		if ( ! empty( $options['scheduled_posts'] ) ) {
+			// If scheduled task is placeholder, remove the entry.
+			if ( '-' === $options['scheduled_posts'][0] ) {
+				array_shift( $options['scheduled_posts'] );
+				update_option( 'wp_listings_google_my_business_options', $options );
+			} else {
+				$this->wpl_gmb_get_data_from_post_id( $options['scheduled_posts'][0] );
+			}
 		}
 	}
 
@@ -815,12 +1030,12 @@ class WPL_Google_My_Business {
 		wp_clear_scheduled_hook( 'wp_listings_gmb_auto_post' );
 
 		if ( $retry_post ) {
-			wp_schedule_event( ( time() + ( HOUR_IN_SECONDS * 12 ) ), $options['posting_settings']['posting_frequency'], 'wp_listings_gmb_auto_post' );
+			wp_schedule_event( ( time() + ( HOUR_IN_SECONDS * 12 ) ), $options['posting_frequency'], 'wp_listings_gmb_auto_post' );
 			return;
 		}
 
 		$current_schedules   = wp_get_schedules();
-		$posting_frequency   = $options['posting_settings']['posting_frequency'];
+		$posting_frequency   = $options['posting_frequency'];
 		$frequency_timestamp = $current_schedules[ $posting_frequency ]['interval'];
 		wp_schedule_event( ( time() + $frequency_timestamp ), $posting_frequency, 'wp_listings_gmb_auto_post' );
 	}
@@ -840,12 +1055,12 @@ class WPL_Google_My_Business {
 	}
 
 	/**
-	 * Post_Next_Scheduled_Now.
-	 * Updates scheduled posts list.
+	 * Post_Now.
+	 * Posts with provided data.
 	 *
 	 * @return void
 	 */
-	public function wpl_post_next_scheduled_now() {
+	public function impress_gmb_post_now() {
 		// User capability check.
 		if ( ! current_user_can( 'manage_categories' ) ) {
 			echo 'check permissions';
@@ -853,10 +1068,17 @@ class WPL_Google_My_Business {
 		}
 
 		// Validate and process request.
-		if ( isset( $_POST['nonce'] ) && wp_verify_nonce( sanitize_key( $_POST['nonce'] ), 'wpl_post_next_scheduled_now_nonce' ) ) {
-			$this->wpl_reset_next_scheduled_post_time();
-			$this->wpl_gmb_scheduled_post();
-			echo 'success';
+		if ( isset( $_POST['nonce'], $_POST['postUrl'], $_POST['imageUrl'], $_POST['summary'] ) && wp_verify_nonce( sanitize_key( $_POST['nonce'] ), 'impress_gmb_post_now_nonce' ) ) {
+			$post_url  = sanitize_text_field( wp_unslash( $_POST['postUrl'] ) );
+			$image_url = sanitize_text_field( wp_unslash( $_POST['imageUrl'] ) );
+			$summary   = sanitize_text_field( wp_unslash( $_POST['summary'] ) );
+
+			$post_id = null;
+			if ( ! empty( $_POST['id'] ) ) {
+				$post_id = sanitize_text_field( wp_unslash( $_POST['id'] ) );
+			}
+			$this->publish_post_to_gmb( $summary, $image_url, $post_url, $post_id );
+			wp_send_json( 'success', 200 );
 		}
 
 		wp_die();
@@ -868,7 +1090,7 @@ class WPL_Google_My_Business {
 	 *
 	 * @return void
 	 */
-	public function wpl_update_scheduled_posts() {
+	public function impress_gmb_update_scheduled_posts() {
 		// User capability check.
 		if ( ! current_user_can( 'manage_categories' ) ) {
 			echo 'check permissions';
@@ -876,87 +1098,18 @@ class WPL_Google_My_Business {
 		}
 
 		// Validate and process request.
-		if ( isset( $_POST['nonce'] ) && wp_verify_nonce( sanitize_key( $_POST['nonce'] ), 'wpl_update_scheduled_posts_nonce' ) ) {
+		if ( isset( $_POST['nonce'], $_POST['scheduled_posts'] ) && wp_verify_nonce( sanitize_key( $_POST['nonce'] ), 'impress_gmb_update_scheduled_posts_nonce' ) ) {
+			$submitted_schedule = explode( ',', sanitize_text_field( wp_unslash( $_POST['scheduled_posts'] ) ) );
 			$options            = $this->wpl_get_gmb_settings_options();
-			$scheduled_post_ids = [];
 
-			if ( ! empty( $_POST['scheduled_posts'] ) && is_array( $_POST['scheduled_posts'] ) ) {
-				$scheduled_post_ids = filter_var_array( wp_unslash( $_POST['scheduled_posts'] ), FILTER_SANITIZE_STRING );
-			}
-
-			$options['posting_settings']['scheduled_posts'] = $scheduled_post_ids;
-			update_option( 'wp_listings_google_my_business_options', $options );
-			echo 'success';
-		}
-
-		wp_die();
-	}
-
-	/**
-	 * Clear_Scheduled_Posts.
-	 * Clears scheduled posts list.
-	 *
-	 * @return void
-	 */
-	public function wpl_clear_scheduled_posts() {
-		// User capability check.
-		if ( ! current_user_can( 'manage_categories' ) ) {
-			echo 'check permissions';
-			wp_die();
-		}
-
-		// Validate and process request.
-		if ( isset( $_POST['nonce'] ) && wp_verify_nonce( sanitize_key( $_POST['nonce'] ), 'wpl_clear_scheduled_posts_nonce' ) ) {
-			$options = $this->wpl_get_gmb_settings_options();
-			$options['posting_settings']['scheduled_posts'] = [];
-			update_option( 'wp_listings_google_my_business_options', $options );
-			echo 'success';
-		}
-
-		wp_die();
-	}
-
-	/**
-	 * Update_Exclusion_List.
-	 * Updates the post exclusion list, these posts will not be used for sharing.
-	 *
-	 * @return void
-	 */
-	public function wpl_update_exclusion_list() {
-		// User capability check.
-		if ( ! current_user_can( 'manage_categories' ) ) {
-			echo 'check permissions';
-			wp_die();
-		}
-
-		// Validate and process request.
-		if ( isset( $_POST['nonce'], $_POST['update_type'], $_POST['post_id'] ) && wp_verify_nonce( sanitize_key( $_POST['nonce'] ), 'wpl_update_exclusion_list_nonce' ) ) {
-			$options = $this->wpl_get_gmb_settings_options();
-
-			if ( 'clear' === $_POST['update_type'] ) {
-				$options['posting_settings']['excluded_posts'] = [];
+			if ( ! empty( $submitted_schedule ) && is_array( $submitted_schedule ) ) {
+				$options['scheduled_posts'] = $submitted_schedule;
 				update_option( 'wp_listings_google_my_business_options', $options );
-				echo 'success';
 			}
 
-			if ( 'add' === $_POST['update_type'] && ! empty( $_POST['post_id'] ) ) {
-				array_push( $options['posting_settings']['excluded_posts'], absint( $_POST['post_id'] ) );
-				$options['posting_settings']['excluded_posts'] = array_unique( $options['posting_settings']['excluded_posts'] );
-				update_option( 'wp_listings_google_my_business_options', $options );
-				echo 'success';
-			}
-
-			if ( 'remove' === $_POST['update_type'] && ! empty( $_POST['post_id'] ) ) {
-				foreach ( $options['posting_settings']['excluded_posts'] as $key => $value ) {
-					if ( $value == $_POST['post_id'] ) {
-						array_splice( $options['posting_settings']['excluded_posts'], $key, 1 );
-						update_option( 'wp_listings_google_my_business_options', $options );
-						echo 'success';
-						break;
-					}
-				}
-			}
+			wp_send_json( $submitted_schedule, 200 );
 		}
+
 		wp_die();
 	}
 
@@ -972,7 +1125,6 @@ class WPL_Google_My_Business {
 			echo 'check permissions';
 			wp_die();
 		}
-
 		// Validate and process request.
 		if ( isset( $_POST['nonce'] ) && wp_verify_nonce( sanitize_key( $_POST['nonce'] ), 'wpl_clear_last_post_status_nonce' ) ) {
 			$options = $this->wpl_get_gmb_settings_options();
@@ -997,22 +1149,6 @@ class WPL_Google_My_Business {
 		return '';
 	}
 
-	/**
-	 * Pop_Last_Shared_Post_ID.
-	 * Helper function used to pop last post ID from the post log in case of a posting error.
-	 *
-	 * @return string
-	 */
-	public function wpl_gmb_pop_last_shared_post_id() {
-		$options = $this->wpl_get_gmb_settings_options();
 
-		if ( ! empty( $option['posting_logs']['used_post_ids'] ) ) {
-			$last_post_id = array_pop( $option['posting_logs']['used_post_ids'] );
-			// Save 
-			update_option( 'wp_listings_google_my_business_options', $options );
-			return $last_post_id;
-		}
-		return '';
-	}
 
 }

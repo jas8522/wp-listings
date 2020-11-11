@@ -1,17 +1,17 @@
 # IMPress Listings #
-**Author:** Agent Evolution
+**Author:** IDX Broker
 
-**Author URL:** http://www.agentevolution.com/
+**Author URL:** https://www.idxbroker.com/
 
-**Contributors:** agentevolution, davebonds, chadajohnson
+**Contributors:** IDX, LLC
 
 **Tags:** real estate, listings, property, properties, listing search, idx, idx broker, mls, agentpress
 
 **Requires at least:** 4.0
 
-**Tested up to:** 5.4.1
+**Tested up to:** 5.5.1
 
-**Stable tag:** 2.5.3
+**Stable tag:** 2.6.0
 
 **Requires PHP:** 5.6
 
@@ -19,27 +19,17 @@
 
 **License URI:** http://www.gnu.org/licenses/gpl-2.0.html
 
-Creates a portable real estate listing management system. Designed to work with any theme using built-in templates.
-
 ## Description ##
 
-You’ve got to have a really good reason to change the name of a successful WordPress plugin.
+Have full control of how your featured listings are presented on your real estate WordPress website.
 
-With WP Listings, version 2.0 gave us that reason, IDX integration.
-
-### WP Listings is now IMPress Listings ###
-
-Just like WP Listings, the IMPress Listings plugin creates a listing management system for your WordPress site. It still is fully responsive and works with nearly any WordPress theme.
-
-IMPress Listings adds some important new features to what was already a great plugin. Most notably, MLS integration through the use of the [IMPress for IDX Broker]( https://wordpress.org/plugins/idx-broker-platinum/) plugin.
+IMPress Listings creates a fully responsive listing management system and works with nearly any WordPress theme. The plugin allows MLS integration through the use of the [IMPress for IDX Broker](https://wordpress.org/plugins/idx-broker-platinum/) plugin. IMPress Listings also allows for manual entry and management of listings directly within the WordPress interface.
 
 ### Demo ###
-View a demo of the plugin in action: [IMPress Listings demo](http://demo.wp-listings.com/)
+View a demo of the plugin in action: [IMPress Listings demo](http://impresslistings.com/)
 
 > **Importing from your MLS**
-> No more typing in listing information that you have already added to your MLS. With IMPress Listings and IMPress for IDX Broker, you can automatically import basic listing details.
->
-> Want even more listing content imported? Switch to our Equity framework for your WordPress website. A WordPress site running Equity, IMPress Listings and IMPress for IDX Broker can import full listing details.
+> No more typing in listing information that you have already added to your MLS. With IMPress Listings and IMPress for IDX Broker, you can automatically import listing details.
 >
 > *IDX Broker subscription required.
 
@@ -54,32 +44,25 @@ Use the taxonomy creation tool to create your own way of classifying listings (i
 
 Find listings by taxonomy using filters in the WordPress admin.
 
-### Widget ###
+### Google My Business ###
 
-Includes a Featured Listings widget to display listings in any taxonomy (Property type, Status, Location, etc.). Display them in a custom number of columns.
+Connect IMPress Listings to your verified Google My Business profile to generate and schedule timely posts, photos of your listings, and more.
 
-Also, a Quick Search widget to allow visitors to search your listings by taxonomy.
+The automatic scheduler can be used to create and share posts to highlight featured listings, open house announcements, recent sales, local expertise, and more.
 
-> **Premium Listing Templates**
-> Make your listing pages look like single property websites with our [premium listing templates](http://www.agentevolution.com/plugins/).
-> These templates use their own styling and navigation to look like a unique website without any of the extra work or expense.
-> Install any or all of our premium listing templates and use them for all of your featured listings.
+Posts have the potential to bring leads and clients directly to your IDX-enabled website for more home search opportunities. Google My Business posts are archived on a weekly basis, so automating the process with the scheduler is an easy way to maintain your real estate business’s online presence.
+
+* Automatic posting requires a verified Google My Business account with a verified location.
 
 ### Migrating from AgentPress Listings ###
 
 If you're using the [AgentPress Listings](https://wordpress.org/plugins/agentpress-listings/) plugin, we've made it easy to switch to IMPress Listings. The plugin uses the same post type name and data fields (plus several more) so all your entered listing data will remain in place.
 
-### Automatic Map Insertion ###
-
-No more embedding a map into your listing pages. Enter the property’s latitude and longitude and a map is automatically added to the listing page.
-
-Using IMPress for IDX Broker? Longitude and latitude is automatically added for your imported listings.
-
 ### Property Display ###
 
-Single listings display the custom data automatically with no need to insert shortcodes to display listing data. If it's entered, it will display on the page.
+IMPress Listings automatically creates individual listings pages for your imported properties that can be managed in your WordPress dashboard. These pages can be linked, shared or searched from anywhere else on your site.
 
-Don’t want to show the price on a listing? Check a box and the price is hidden. That simple.
+Choose to show or hide specific fields (pricing, square ft, etc.) with one click.
 
 Supported property fields:
 * Price
@@ -101,10 +84,6 @@ Supported property fields:
 * Map
 * and more!
 
-### Enhanced Theme Compatibility ###
-
-While we would love for you to use one of our Equity themes with IMPress Listings, we have made it easier to work with your favorite WordPress themes. The plugin now allows custom page wrappers to better fit your theme.
-
 ### Contact Forms ###
 
 Listing pages include a contact form for visitors to inquire about a property, or the form can be replaced with your own form plugin shortcode.
@@ -117,12 +96,7 @@ A lot of developer goodies came in WordPress 4.4, including API support. Develop
 
 We have built in WordPress API support for the listing post type and default taxonomies. This will allow skilled developers to create their own applications around listing content.
 
-There is also support for taxonomy featured images. Assign an image for active properties, solds, featured listings, neighborhoods, or an other taxonomy you should create.
-
-### Integration ###
-Integrates with the [Genesis Agent Profiles](https://wordpress.org/plugins/genesis-agent-profiles/) plugin to display the listing agent(s).
-
-Feel free to contribute to this project on [Github](https://github.com/agentevolution/wp-listings).
+There is also support for taxonomy featured images. Assign an image for active properties, solds, featured listings, neighborhoods, or any other taxonomy you might create.
 
 ## Installation ##
 
@@ -170,7 +144,7 @@ Description: Give it a description to help identify
 
 ### How can I remove the default property status terms or property type terms? ###
 
-Its possible to remove the default property status terms by using a filter in your theme or custom plugins. Here is an example for the status terms:
+It's possible to remove the default property status terms by using a filter in your theme or custom plugins. Here is an example for the status terms:
 
 `/* Remove Default Status Terms from IMPress Listings */
 add_filter( 'wp_listings_default_status_terms', 'custom_default_status_terms' );
@@ -189,6 +163,8 @@ function custom_default_property_type_terms() {
 }`
 
 ## Changelog ##
+
+## 2.6.0 ##
 
 ## 2.5.3 ##
 *Released 6-30-2020*
